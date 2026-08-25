@@ -1,0 +1,6 @@
+# Ignoriere die Datenbank und Logs
+data/*
+!data/.gitkeep
+
+# Ignoriere Mac/Linux Systemdateien
+.DS_Store
