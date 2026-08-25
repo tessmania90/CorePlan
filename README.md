@@ -25,7 +25,7 @@ version: '3.8'
 
 services:
   coreplan:
-    image: tessmanndigital/coreplan:latest
+    image: stessmann/coreplan:latest
     container_name: coreplan
     ports:
       - "8443:80" # Passe den Port nach deinen Bedürfnissen an
