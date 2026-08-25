@@ -28,7 +28,7 @@ services:
     image: stessmann/coreplan:latest
     container_name: coreplan
     ports:
-      - "8443:80" # Passe den Port nach deinen Bedürfnissen an
+      - "8443:443" # Passe den Port nach deinen Bedürfnissen an
     volumes:
       - ./data:/var/www/data
     restart: unless-stopped
@@ -40,7 +40,7 @@ docker compose up -d
 ```
 
 ### 🔑 Erste Schritte
-Nach dem Start ist CorePlan unter `http://deine-ip:8443` erreichbar. 
+Nach dem Start ist CorePlan unter `https://deine-ip:8443` erreichbar. 
 * **Standard-Login:** `admin`
 * **Standard-Passwort:** `admin`
 
