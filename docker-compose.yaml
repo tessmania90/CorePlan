@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  coretemplate:
+    build: .
+    container_name: coreplan_app
+    ports:
+      # Außen 8443, intern 443 (HTTPS)
+      - "8443:443"
+    volumes:
+      - ./src:/var/www/html
+      - ./data:/var/www/data
+    restart: unless-stopped

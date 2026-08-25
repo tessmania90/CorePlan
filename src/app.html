@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CorePlan</title>
+    <style>
+        :root { --bg-color: #12141c; --surface-color: #1e212b; --surface-hover: #2a2e3d; --text-main: #ffffff; --text-muted: #8b92a5; --accent-blue: #3b82f6; --accent-red: #ef4444; --accent-green: #10b981; --accent-orange: #f59e0b; }
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        .container { background-color: var(--surface-color); padding: 2.5rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 100%; max-width: 350px; margin-top: 10vh; }
+        .dashboard-container { max-width: 1000px; padding: 2rem; margin-top: 0; }
+        h1, h2, h3 { margin-top: 0; } h1 { font-size: 1.5rem; text-align: center; }
+        .form-group { margin-bottom: 1.5rem; } label { display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem; }
+        input, select, textarea { width: 100%; box-sizing: border-box; padding: 0.75rem; background-color: var(--bg-color); border: 1px solid var(--surface-hover); color: white; border-radius: 6px; outline: none; transition: border 0.2s; font-family: inherit; }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent-blue); }
+        button { width: 100%; padding: 0.75rem; background-color: var(--accent-blue); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
+        button:hover { opacity: 0.9; }
+        .error-msg { color: var(--accent-red); font-size: 0.85rem; text-align: center; margin-bottom: 1rem; display: none; }
+        .hidden { display: none !important; }
+        .log-container { margin-top: 1.5rem; background-color: var(--bg-color); border-radius: 8px; padding: 1.5rem; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; } th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--surface-hover); }
+        th { color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; } tr:last-child td { border-bottom: none; }
+        tr:hover { background-color: rgba(255,255,255,0.02); }
+        .badge { background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; display: inline-block; }
+        .btn-delete { background-color: transparent; color: var(--accent-red); border: none; padding: 0; width: auto; font-size: 1.1rem; }
+        
+        .list-container { display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1.5rem; }
+        .project-card { background-color: var(--surface-hover); border-radius: 8px; padding: 1.5rem; border: 1px solid transparent; transition: border-color 0.2s, transform 0.2s; cursor: pointer; position: relative; }
+        .project-card:hover { border-color: var(--accent-blue); transform: translateX(5px); }
+        .project-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
+        .project-title { font-size: 1.2rem; font-weight: bold; margin: 0; }
+        .project-desc { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; }
+        .progress-bg { background-color: var(--bg-color); height: 6px; border-radius: 3px; overflow: hidden; margin-top: 5px; }
+        .progress-fill { background-color: var(--accent-blue); height: 100%; transition: width 0.3s; }
+        .assigned-badge { font-size: 0.7rem; background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); padding: 2px 6px; border-radius: 4px; position: absolute; top: 1.5rem; right: 3.5rem; }
+        
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.75); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box;}
+        .modal-content { background-color: var(--surface-color); width: 100%; max-width: 900px; border-radius: 12px; padding: 2rem; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-height: 90vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--surface-hover); padding-bottom: 1rem; margin-bottom: 1rem; }
+        .btn-close { background: transparent; color: var(--text-muted); border: none; font-size: 1.5rem; cursor: pointer; padding: 0; width: auto; }
+        .btn-close:hover { color: var(--accent-red); }
+        
+        .phase-header { font-weight: bold; font-size: 1.1rem; color: var(--accent-blue); margin-top: 1.5rem; border-bottom: 1px solid var(--surface-hover); padding-bottom: 0.5rem; }
+        .task-item { display: flex; align-items: flex-start; gap: 12px; padding: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.02); position: relative; }
+        .task-item:hover { background-color: rgba(255,255,255,0.02); }
+        .task-item.done { opacity: 0.5; } .task-item.done .task-text { text-decoration: line-through; }
+        .task-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent-blue); margin-top: 3px; }
+        .task-details { display: flex; flex-direction: column; flex-grow: 1; }
+        .task-meta { font-size: 0.75rem; display: flex; gap: 10px; margin-top: 4px; color: var(--text-muted); flex-wrap: wrap;}
+        .prio-badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; text-transform: uppercase; }
+        .task-actions { display: none; position: absolute; right: 10px; top: 10px; gap: 5px; } .task-item:hover .task-actions { display: flex; }
+        .btn-icon { background: transparent; border: none; padding: 5px; cursor: pointer; color: var(--text-muted); font-size: 1rem; width: auto; } .btn-icon:hover { color: var(--text-main); } .btn-icon.del:hover { color: var(--accent-red); }
+        .pm-controls { display: flex; gap: 10px; margin-bottom: 1.5rem; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; flex-wrap: wrap;}
+        
+        .license-banner { padding: 15px; margin-bottom: 20px; border-radius: 6px; display: flex; flex-direction: column; gap: 5px; }
+        .license-community { background: rgba(255,255,255,0.05); border-left: 4px solid var(--text-muted); }
+        .license-active { background: rgba(16, 185, 129, 0.1); border-left: 4px solid var(--accent-green); }
+        .license-expired { background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--accent-red); }
+        .info-box { background: rgba(59, 130, 246, 0.1); border-left: 4px solid var(--accent-blue); padding: 10px; border-radius: 0 4px 4px 0; margin-bottom: 1.5rem; font-size: 0.9rem;}
+        .deadline-box { background: var(--surface-hover); padding: 1.5rem; border-radius: 8px; margin-top: 1.5rem; border-left: 4px solid var(--accent-orange); }
+        .deadline-item { padding: 8px; margin-bottom: 5px; border-radius: 4px; font-size: 0.9rem; }
+        .deadline-warn { background: rgba(245, 158, 11, 0.1); border-left: 3px solid var(--accent-orange); }
+        .deadline-danger { background: rgba(239, 68, 68, 0.2); border-left: 3px solid var(--accent-red); color: var(--accent-red); }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="loginView">
+        <h1>CorePlan Login</h1>
+        <div class="error-msg" id="loginError">Login fehlgeschlagen.</div>
+        <form id="loginForm">
+            <div class="form-group"><label>Benutzername</label><input type="text" id="username" required></div>
+            <div class="form-group"><label>Passwort</label><input type="password" id="password" required></div>
+            <button type="submit">Anmelden</button>
+        </form>
+    </div>
+
+    <div class="container dashboard-container hidden" id="dashboardView">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--surface-hover); padding-bottom: 1rem; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
+            <h1 style="margin: 0;">CorePlan <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: normal;">| <span id="userNameDisplay"></span> (<span id="userRoleDisplay"></span>)</span></h1>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button onclick="toggleView('myarea')" style="width: auto; background-color: var(--surface-hover); color: var(--accent-blue);">👤 Mein Bereich</button>
+                <button onclick="toggleView('projects')" style="width: auto; background-color: transparent; border: 1px solid var(--text-muted); color: var(--text-main);">Projekte</button>
+                <button id="navLogs" onclick="toggleView('logs')" style="width: auto; background-color: transparent; border: 1px solid var(--text-muted); color: var(--text-main);">Logs</button>
+                <button id="navSettings" onclick="toggleView('settings')" style="width: auto; background-color: transparent; border: 1px solid var(--text-muted); color: var(--text-main);">Settings</button>
+                <button id="navUsers" onclick="toggleView('users')" style="width: auto; background-color: transparent; border: 1px solid var(--text-muted); color: var(--text-main);">Benutzer</button>
+                <button onclick="logout()" style="width: auto; background-color: var(--accent-red);">Abmelden</button>
+            </div>
+        </div>
+        
+        <div id="tabMyarea">
+            <h2 style="margin-bottom: 0.5rem;">Mein Bereich</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0;">Übersicht deiner aktiven Projekt-Zuweisungen und offenen Aufgaben.</p>
+            
+            <div class="deadline-box">
+                <h3 style="margin-top: 0; margin-bottom: 1rem; color: var(--accent-orange);">🚨 Anstehende Deadlines (nächste 7 Tage)</h3>
+                <div id="upcomingDeadlinesBox" style="display: flex; flex-direction: column; gap: 5px;"></div>
+            </div>
+
+            <div style="display: flex; gap: 2rem; margin-top: 2rem; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 300px;">
+                    <h3>Meine Projekte</h3>
+                    <div id="myProjectsContainer" class="list-container" style="margin-top: 0;"></div>
+                </div>
+                <div style="flex: 1; min-width: 300px;">
+                    <h3>Meine Aufgaben</h3>
+                    <div id="myTasksContainer" style="background: var(--surface-hover); border-radius: 8px; padding: 1rem;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tabProjects" class="hidden">
+            <div class="log-container">
+                <h3 style="margin-top: 0; margin-bottom: 1rem;">Neues Projekt starten</h3>
+                <form id="projectForm" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start;">
+                    <div style="flex: 1; min-width: 200px;"><input type="text" id="projTitle" placeholder="Projekt Titel" required></div>
+                    <div style="flex: 2; min-width: 200px;"><input type="text" id="projDesc" placeholder="Kurze Beschreibung..."></div>
+                    <div style="flex: 1; min-width: 150px;"><input type="date" id="projDeadline" title="Deadline (Optional)"></div>
+                    <textarea id="projBriefing" placeholder="Projekt-Steckbrief / Zielsetzung (Optional)" style="width: 100%; min-height: 60px; margin-top: 5px;"></textarea>
+                    <button type="submit" style="width: auto; padding: 0.75rem 2rem; margin-top: 5px;">Projekt Anlegen</button>
+                </form>
+            </div>
+            <div id="projectsGrid" class="list-container"></div>
+        </div>
+
+        <div id="tabLogs" class="log-container hidden"><h3 style="margin-top: 0;">System Audit Log</h3><table><thead><tr><th>Zeit</th><th>User</th><th>Aktion</th><th>Info</th></tr></thead><tbody id="logTableBody"></tbody></table></div>
+        
+        <div id="tabSettings" class="hidden">
+            <div class="log-container" style="border: 1px solid var(--accent-blue);">
+                <h3 style="margin-top: 0; color: var(--accent-blue);">Lizenz & Version</h3>
+                <div id="licenseBannerBox"></div>
+                <form id="licenseForm" style="display: flex; gap: 10px; margin-top: 1rem;">
+                    <input type="text" id="licenseInput" placeholder="Lizenzschlüssel hier einfügen..." required style="flex: 1;">
+                    <button type="submit" style="width: auto;">Lizenz aktivieren</button>
+                </form>
+            </div>
+
+            <div class="log-container" style="margin-top: 1.5rem;">
+                <h3 style="margin-top: 0; color: var(--accent-green);">Gotify Push-Benachrichtigungen (Globales Radar)</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Sendet alle System-Alarme zentral auf dein Admin-Handy.</p>
+                <form style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
+                    <input type="url" id="setGotifyUrl" placeholder="Gotify URL (z.B. https://push.domain.de)" style="flex: 2; min-width: 200px;">
+                    <input type="text" id="setGotifyToken" placeholder="App Token" style="flex: 1; min-width: 150px;">
+                    <button type="button" onclick="saveSpecificSettings(['GOTIFY_URL', 'GOTIFY_TOKEN'], [document.getElementById('setGotifyUrl').value, document.getElementById('setGotifyToken').value])" style="width: auto;">Gotify Speichern</button>
+                    <button type="button" onclick="testGotify()" style="width: auto; background-color: transparent; border: 1px solid var(--accent-blue); color: var(--accent-blue);">🔔 Test Senden</button>
+                </form>
+            </div>
+
+            <div class="log-container" style="margin-top: 1.5rem;">
+                <h3 style="margin-top: 0; color: var(--accent-orange);">SMTP E-Mail Server (Persönliches Radar)</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Verschickt personalisierte Erinnerungen an User (unterstützt Port 465 SSL oder 587 TLS).</p>
+                <form style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
+                    <input type="text" id="setSmtpHost" placeholder="SMTP Host (z.B. mail.domain.de)" style="flex: 1; min-width: 150px;">
+                    <input type="number" id="setSmtpPort" placeholder="Port (z.B. 465 oder 587)" style="flex: 1; min-width: 80px;">
+                    <input type="text" id="setSmtpUser" placeholder="Benutzername" style="flex: 1; min-width: 120px;">
+                    <input type="password" id="setSmtpPass" placeholder="Passwort" style="flex: 1; min-width: 120px;">
+                    <input type="email" id="setSmtpFrom" placeholder="Absender (From:)" style="flex: 1.5; min-width: 150px;">
+                    <button type="button" onclick="saveSpecificSettings(['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM'], [document.getElementById('setSmtpHost').value, document.getElementById('setSmtpPort').value, document.getElementById('setSmtpUser').value, document.getElementById('setSmtpPass').value, document.getElementById('setSmtpFrom').value])" style="width: auto;">SMTP Speichern</button>
+                    <button type="button" onclick="testSmtp()" style="width: auto; background-color: transparent; border: 1px solid var(--accent-blue); color: var(--accent-blue);">📧 Test Senden</button>
+                </form>
+            </div>
+
+            <div class="log-container" style="margin-top: 1.5rem;">
+                <h3 style="margin-top: 0;">Erweiterte Systemeinstellungen</h3>
+                <form id="settingsForm" style="display: flex; gap: 10px; margin-bottom: 1rem;"><input type="text" id="configKey" placeholder="Schlüssel" required style="flex: 1;"><input type="text" id="configValue" placeholder="Wert" required style="flex: 2;"><button type="submit" style="width: auto;">Speichern</button></form>
+                <table><thead><tr><th>Schlüssel</th><th>Wert</th><th style="text-align: right;">Aktion</th></tr></thead><tbody id="settingsTableBody"></tbody></table>
+            </div>
+        </div>
+
+        <div id="tabUsers" class="log-container hidden">
+            <h3 style="margin-top: 0;">Nutzerverwaltung (Admins)</h3>
+            <form id="userForm" style="display: flex; gap: 10px; margin-bottom: 1rem; flex-wrap: wrap;">
+                <input type="text" id="newUsername" placeholder="Benutzername" required style="flex: 1; min-width: 120px;">
+                <input type="email" id="newUserEmail" placeholder="E-Mail Adresse" style="flex: 1.5; min-width: 150px;">
+                <input type="password" id="newUserPass" placeholder="Passwort" required style="flex: 1; min-width: 120px;">
+                <select id="newUserRole" style="flex: 1; min-width: 100px;"><option value="user">User</option><option value="pm">Projektmanager (PM)</option><option value="admin">Admin</option></select>
+                <button type="submit" style="width: auto;">Anlegen</button>
+            </form>
+            <table><thead><tr><th>ID</th><th>User</th><th>E-Mail</th><th>Rolle</th><th style="text-align: right;">Aktion</th></tr></thead><tbody id="usersTableBody"></tbody></table>
+        </div>
+    </div>
+
+    <!-- MAIN TASK MODAL -->
+    <div id="taskModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header"><h2 id="modalProjectTitle" style="margin: 0;">Projekt Details</h2><button class="btn-close" onclick="closeTaskModal()">✖</button></div>
+            <div class="modal-body">
+                <div style="display:flex; justify-content: space-between; margin-bottom: 1rem;"><span id="modalProjectStatus" class="badge">Aktiv</span></div>
+                <div id="modalBriefingBox" class="info-box hidden"><strong>Steckbrief:</strong> <span id="modalBriefingText"></span></div>
+                <div id="modalCloseComment" style="display:none; color: var(--text-muted); font-size: 0.9rem; font-style: italic; margin-bottom: 1.5rem; border-left: 3px solid var(--surface-hover); padding-left: 10px;"></div>
+                <div id="pmControls" class="pm-controls hidden"><button onclick="assignProjectToMe()" style="background-color: var(--surface-color); border: 1px solid var(--text-muted); color: var(--text-main); width: auto; font-size: 0.85rem;">🙋 Mir zuweisen</button><button onclick="extendProject()" style="background-color: var(--accent-blue); width: auto; font-size: 0.85rem;">⏳ Verlängern</button><button onclick="closeProject('closed')" style="background-color: var(--accent-green); width: auto; font-size: 0.85rem;">✔ Abschließen</button><button onclick="closeProject('canceled')" style="background-color: var(--accent-red); width: auto; font-size: 0.85rem;">✖ Abbrechen</button></div>
+                <form id="taskAddForm" style="display: flex; gap: 10px; margin-bottom: 2rem; flex-wrap: wrap; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
+                    <input type="text" id="newTaskPhase" placeholder="Phase (z.B. Phase 1)" required style="flex: 1; min-width: 120px;">
+                    <input type="text" id="newTaskTitle" placeholder="Neues To-Do..." required style="flex: 2; min-width: 200px;">
+                    <select id="newTaskAssignee" class="user-select-dropdown" style="flex: 1; min-width: 120px;"><option value="">-- Frei --</option></select>
+                    <select id="newTaskPriority" style="flex: 1; min-width: 100px;"><option value="1">🔥 Hoch</option><option value="2" selected>⚡ Mittel</option><option value="3">🧊 Niedrig</option></select>
+                    <input type="date" id="newTaskDeadline" title="Ziel-Datum" style="flex: 1; min-width: 130px;">
+                    <button type="submit" style="width: 100%;">Hinzufügen</button>
+                </form>
+                <div id="taskList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT TASK MODAL -->
+    <div id="editTaskModal" class="modal-overlay hidden" style="z-index: 1050; background: rgba(0,0,0,0.85);">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header"><h3 style="margin:0;">Task bearbeiten</h3><button class="btn-close" onclick="document.getElementById('editTaskModal').classList.add('hidden')">✖</button></div>
+            <form id="taskEditForm" style="display: flex; flex-direction: column; gap: 15px;">
+                <input type="hidden" id="editTaskId">
+                <input type="text" id="editTaskTitle" placeholder="To-Do Titel" required>
+                <input type="text" id="editTaskPhase" placeholder="Phase" required>
+                <select id="editTaskAssignee" class="user-select-dropdown"><option value="">-- Nicht zugewiesen --</option></select>
+                <select id="editTaskPriority"><option value="1">🔥 Hoch</option><option value="2">⚡ Mittel</option><option value="3">🧊 Niedrig</option></select>
+                <input type="date" id="editTaskDeadline" title="Ziel-Datum">
+                <button type="submit">Speichern</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- NEU: EDIT USER MODAL -->
+    <div id="editUserModal" class="modal-overlay hidden" style="z-index: 1050; background: rgba(0,0,0,0.85);">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header"><h3 style="margin:0;">Benutzer bearbeiten</h3><button class="btn-close" onclick="document.getElementById('editUserModal').classList.add('hidden')">✖</button></div>
+            <form id="userEditForm" style="display: flex; flex-direction: column; gap: 15px;">
+                <input type="hidden" id="editUserId">
+                <div><label>Benutzername</label><input type="text" id="editUserName" required></div>
+                <div><label>E-Mail</label><input type="email" id="editUserEmail"></div>
+                <div><label>Rolle</label><select id="editUserRole"><option value="user">User</option><option value="pm">Projektmanager (PM)</option><option value="admin">Admin</option></select></div>
+                <div><label>Passwort überschreiben (leer = keine Änderung)</label><input type="password" id="editUserPass" placeholder="***"></div>
+                <button type="submit">Speichern</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentUserRole = 'user'; let currentUserId = null; let allUsers = [];
+
+        document.addEventListener('DOMContentLoaded', checkSession);
+
+        function checkSession() {
+            fetch('/api/me').then(res => res.json()).then(data => {
+                if (data.success) { 
+                    currentUserRole = data.role; currentUserId = data.user_id; document.getElementById('userRoleDisplay').innerText = data.role.toUpperCase();
+                    if(currentUserRole !== 'admin') { document.getElementById('navLogs').style.display = 'none'; document.getElementById('navSettings').style.display = 'none'; document.getElementById('navUsers').style.display = 'none'; }
+                    fetchAllUsers(); showDashboard(data.username); 
+                } else { document.getElementById('loginView').classList.remove('hidden'); }
+            });
+        }
+        
+        function fetchAllUsers() {
+            fetch('/api/users').then(res => res.json()).then(data => {
+                if (data.success) {
+                    allUsers = data.data; let options = '<option value="">-- Frei --</option>';
+                    allUsers.forEach(u => options += `<option value="${u.id}">${u.username}</option>`);
+                    document.querySelectorAll('.user-select-dropdown').forEach(el => el.innerHTML = options);
+                }
+            });
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', function(e) { e.preventDefault(); const formData = new FormData(); formData.append('username', document.getElementById('username').value); formData.append('password', document.getElementById('password').value); fetch('/api/login', { method: 'POST', body: formData }).then(res => res.json()).then(data => { if (data.success) { document.getElementById('loginError').style.display = 'none'; checkSession(); } else { document.getElementById('loginError').style.display = 'block'; } }); });
+        function logout() { fetch('/api/logout').then(() => { location.reload(); }); }
+        function showDashboard(username) { document.getElementById('loginView').classList.add('hidden'); document.getElementById('dashboardView').classList.remove('hidden'); document.getElementById('userNameDisplay').innerText = username; toggleView('myarea'); }
+        function toggleView(tab) { document.getElementById('tabMyarea').classList.add('hidden'); document.getElementById('tabProjects').classList.add('hidden'); document.getElementById('tabLogs').classList.add('hidden'); document.getElementById('tabSettings').classList.add('hidden'); document.getElementById('tabUsers').classList.add('hidden'); const target = document.getElementById('tab'+tab.charAt(0).toUpperCase() + tab.slice(1)); if (target) target.classList.remove('hidden'); if (tab === 'projects') loadProjects(); else if (tab === 'logs') loadAuditLogs(); else if (tab === 'settings') loadSettings(); else if (tab === 'users') loadUsers(); else if (tab === 'myarea') loadMyArea(); }
+
+        // --- MEIN BEREICH & DEADLINES ---
+        function loadMyArea() {
+            fetch('/api/myarea').then(res => res.json()).then(data => {
+                if(data.success) {
+                    const pGrid = document.getElementById('myProjectsContainer'); const tGrid = document.getElementById('myTasksContainer');
+                    pGrid.innerHTML = ''; tGrid.innerHTML = '';
+                    
+                    let upcomingHtml = '';
+                    const now = new Date(); now.setHours(0,0,0,0);
+                    const nextWeek = new Date(now); nextWeek.setDate(now.getDate() + 7);
+
+                    if(data.projects.length === 0) pGrid.innerHTML = '<span style="color:var(--text-muted);">Keine aktiven Projekte zugewiesen.</span>';
+                    data.projects.forEach(p => {
+                        const safeTitle = p.title.replace(/'/g, "\\'"); const safeBriefing = (p.briefing || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        pGrid.innerHTML += `<div class="project-card" onclick="openTaskModal(${p.id}, '${safeTitle}', '${p.status}', '', '${safeBriefing}')"><h3 style="margin:0; color:var(--accent-blue);">${p.title}</h3><p style="font-size:0.85rem; color:var(--text-muted);">${p.description || 'Keine Info'}</p></div>`;
+                        if(p.deadline) {
+                            let d = new Date(p.deadline);
+                            if(d >= now && d <= nextWeek) upcomingHtml += `<div class="deadline-item deadline-warn"><strong>Projekt:</strong> ${p.title} (Fällig am: ${p.deadline})</div>`;
+                            else if (d < now) upcomingHtml += `<div class="deadline-item deadline-danger"><strong>⚠️ Überfällig:</strong> Projekt "${p.title}" (war fällig am: ${p.deadline})</div>`;
+                        }
+                    });
+
+                    if(data.tasks.length === 0) tGrid.innerHTML = '<span style="color:var(--text-muted);">Keine offenen Aufgaben. Gut gemacht!</span>';
+                    else tGrid.innerHTML = '<ul style="list-style:none; padding:0; margin:0;"></ul>';
+                    const ul = tGrid.querySelector('ul');
+                    
+                    data.tasks.forEach(t => {
+                        let prioHtml = t.priority == 1 ? `<span class="prio-badge" style="background: rgba(239, 68, 68, 0.2); color: var(--accent-red);">Hoch</span>` : (t.priority == 2 ? `<span class="prio-badge" style="background: rgba(245, 158, 11, 0.2); color: var(--accent-orange);">Mittel</span>` : `<span class="prio-badge" style="background: rgba(16, 185, 129, 0.2); color: var(--accent-green);">Niedrig</span>`);
+                        let dlHtml = t.deadline ? `<span style="color:var(--accent-orange); font-size:0.75rem;">⏳ ${t.deadline}</span>` : '';
+                        if(ul) ul.innerHTML += `<li style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); display:flex; gap:10px; align-items:flex-start;"><input type="checkbox" class="task-checkbox" onclick="event.preventDefault(); toggleTaskGlobal(${t.id}, ${t.project_id}, 0)"><div><div style="font-weight:bold;">${t.title} ${prioHtml}</div><div style="font-size:0.8rem; color:var(--text-muted);">Projekt: ${t.project_title} ${dlHtml}</div></div></li>`;
+                        if(t.deadline) {
+                            let d = new Date(t.deadline);
+                            if(d >= now && d <= nextWeek) upcomingHtml += `<div class="deadline-item deadline-warn"><strong>Task:</strong> ${t.title} im Projekt "${t.project_title}" (Fällig am: ${t.deadline})</div>`;
+                            else if (d < now) upcomingHtml += `<div class="deadline-item deadline-danger"><strong>⚠️ Überfällig:</strong> Task "${t.title}" (war fällig am: ${t.deadline})</div>`;
+                        }
+                    });
+
+                    if(upcomingHtml === '') upcomingHtml = '<span style="color:var(--text-muted);">Keine Deadlines in den nächsten 7 Tagen. Entspann dich! ☕</span>';
+                    document.getElementById('upcomingDeadlinesBox').innerHTML = upcomingHtml;
+                }
+            });
+        }
+        function toggleTaskGlobal(taskId, projectId, state) { let comment = prompt("Kurzer Kommentar zur Erledigung:", ""); if (comment === null) return; const formData = new FormData(); formData.append('task_id', taskId); formData.append('project_id', projectId); formData.append('comment', comment); fetch('/api/tasks/toggle', { method: 'POST', body: formData }).then(res=>res.json()).then(data=>{ if(data.success) loadMyArea(); }); }
+
+        // --- PROJEKTE ---
+        function loadProjects() {
+            fetch('/api/projects').then(res => res.json()).then(data => {
+                if (data.success) {
+                    const grid = document.getElementById('projectsGrid'); grid.innerHTML = '';
+                    if (data.data.length === 0) { grid.innerHTML = '<p style="color: var(--text-muted);">Noch keine Projekte vorhanden.</p>'; return; }
+                    data.data.forEach(p => {
+                        let percent = p.total_tasks > 0 ? Math.round((p.completed_tasks / p.total_tasks) * 100) : 0; let timelineHtml = '';
+                        if (p.deadline) {
+                            const start = new Date(p.created_at.replace(' ', 'T')).getTime(); const end = new Date(p.deadline).getTime(); const now = new Date().getTime();
+                            let timePercent = end > start ? Math.max(0, Math.min(100, ((now - start) / (end - start)) * 100)) : 0; const daysLeft = Math.ceil((end - now) / 86400000); const daysText = daysLeft >= 0 ? `${daysLeft} Tage verbleibend` : `${Math.abs(daysLeft)} Tage überfällig`; const timeColor = daysLeft < 0 ? 'var(--accent-red)' : (daysLeft <= 3 ? 'var(--accent-orange)' : 'var(--text-muted)');
+                            timelineHtml = `<div style="margin-top: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px;"><div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 5px;"><span style="color: var(--text-muted);">Start: ${p.created_at.substring(0,10)}</span><span style="color: ${timeColor}; font-weight: bold;">⏳ ${daysText}</span><span style="color: var(--text-muted);">Ziel: ${p.deadline}</span></div><div class="progress-bg"><div class="progress-fill" style="width: ${timePercent}%; background-color: ${timeColor};"></div></div></div>`;
+                        }
+                        const safeTitle = p.title.replace(/'/g, "\\'"); const safeBriefing = (p.briefing || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        const isClosed = p.status === 'closed'; const isCanceled = p.status === 'canceled'; let statusColor = 'var(--accent-green)'; let statusLabel = 'Aktiv';
+                        if (isClosed) { statusColor = 'var(--text-muted)'; statusLabel = 'Abgeschlossen'; } if (isCanceled) { statusColor = 'var(--accent-red)'; statusLabel = 'Abgebrochen'; }
+                        let deleteBtn = currentUserRole === 'admin' ? `<button class="btn-delete" onclick="event.stopPropagation(); deleteProject(${p.id}, '${safeTitle}')" title="Projekt löschen">✖</button>` : '';
+                        let assignedHtml = p.assigned_username ? `<div class="assigned-badge">🙋 ${p.assigned_username}</div>` : '';
+
+                        grid.innerHTML += `<div class="project-card" onclick="openTaskModal(${p.id}, '${safeTitle}', '${p.status}', '${(p.close_comment || '').replace(/'/g, "\\'")}', '${safeBriefing}')" style="opacity: ${isClosed||isCanceled ? '0.6' : '1'}; border-left: 3px solid ${statusColor};">${assignedHtml}<div class="project-header"><h3 class="project-title">${p.title} <span style="font-size: 0.75rem; color: ${statusColor}; font-weight: normal; margin-left: 10px;">[${statusLabel}]</span></h3>${deleteBtn}</div><p class="project-desc">${p.description || 'Keine Beschreibung'}</p><div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">Task-Fortschritt (${p.completed_tasks}/${p.total_tasks})</div><div class="progress-bg" title="${percent}%"><div class="progress-fill ${percent === 100 ? 'done' : ''}" style="width: ${percent}%;"></div></div>${timelineHtml}</div>`;
+                    });
+                }
+            });
+        }
+
+        document.getElementById('projectForm').addEventListener('submit', function(e) { e.preventDefault(); const formData = new FormData(); formData.append('title', document.getElementById('projTitle').value); formData.append('description', document.getElementById('projDesc').value); formData.append('briefing', document.getElementById('projBriefing').value); formData.append('deadline', document.getElementById('projDeadline').value); fetch('/api/projects', { method: 'POST', body: formData }).then(res => res.json()).then(data => { if (data.success) { document.getElementById('projectForm').reset(); loadProjects(); } else { alert(data.error); } }); });
+        function deleteProject(id, title) { if (!confirm(`Das Projekt "${title}" unwiderruflich löschen?`)) return; const formData = new FormData(); formData.append('id', id); fetch('/api/projects/delete', { method: 'POST', body: formData }).then(res => res.json()).then(data => { if (data.success) loadProjects(); else alert(data.error); }); }
+
+        function openTaskModal(id, title, status, closeComment, briefing) {
+            currentProjectId = id; document.getElementById('modalProjectTitle').innerText = title; document.getElementById('taskModal').classList.remove('hidden');
+            const badge = document.getElementById('modalProjectStatus'); const pmControls = document.getElementById('pmControls'); const taskForm = document.getElementById('taskAddForm'); const commentBox = document.getElementById('modalCloseComment');
+            const briefingBox = document.getElementById('modalBriefingBox'); const briefingText = document.getElementById('modalBriefingText');
+            if (briefing && briefing.trim() !== '') { briefingText.innerText = briefing; briefingBox.classList.remove('hidden'); } else { briefingBox.classList.add('hidden'); }
+            if (status !== 'active') { badge.innerText = status === 'canceled' ? 'Abgebrochen (Schreibgeschützt)' : 'Abgeschlossen (Schreibgeschützt)'; badge.style.background = status === 'canceled' ? 'var(--accent-red)' : 'var(--text-muted)'; pmControls.classList.add('hidden'); taskForm.style.display = 'none'; if (closeComment) { commentBox.innerText = `"${closeComment}"`; commentBox.style.display = 'block'; } else { commentBox.style.display = 'none'; } } 
+            else { badge.innerText = 'Aktiv'; badge.style.background = 'var(--accent-green)'; taskForm.style.display = 'flex'; commentBox.style.display = 'none'; if(currentUserRole === 'pm' || currentUserRole === 'admin') pmControls.classList.remove('hidden'); else pmControls.classList.add('hidden'); }
+            loadTasks();
+        }
+        function closeTaskModal() { document.getElementById('taskModal').classList.add('hidden'); currentProjectId = null; loadProjects(); }
+        function assignProjectToMe() { if(!confirm('Möchtest du die Verantwortung für dieses Projekt übernehmen?')) return; const formData = new FormData(); formData.append('id', currentProjectId); fetch('/api/projects/assign', { method: 'POST', body: formData }).then(res=>res.json()).then(data=>{ if(data.success) { alert('Projekt zugewiesen!'); loadProjects(); } else alert(data.error); }); }
+        function extendProject() { const newDate = prompt("Bitte neue Deadline eingeben (JJJJ-MM-TT):", ""); if (!newDate) return; const formData = new FormData(); formData.append('id', currentProjectId); formData.append('deadline', newDate); fetch('/api/projects/extend', { method: 'POST', body: formData }).then(res=>res.json()).then(data=>{ if(data.success) closeTaskModal(); else alert(data.error); }); }
+        function closeProject(status) { const actionText = status === 'canceled' ? 'Abbruch' : 'Abschluss'; const comment = prompt(`Bitte hinterlasse einen zwingenden Kommentar zum ${actionText}:`, ""); if (!comment) { alert('Aktion abgebrochen.'); return; } if(!confirm(`Bist du sicher? Das Projekt wird permanent auf "${status}" gesetzt!`)) return; const formData = new FormData(); formData.append('id', currentProjectId); formData.append('status', status); formData.append('comment', comment); fetch('/api/projects/close', { method: 'POST', body: formData }).then(res=>res.json()).then(data=>{ if(data.success) closeTaskModal(); else alert(data.error); }); }
+
+        function loadTasks() {
+            fetch('/api/tasks?project_id=' + currentProjectId).then(res => res.json()).then(data => {
+                if(data.success) {
+                    const list = document.getElementById('taskList'); list.innerHTML = '';
+                    if (data.data.length === 0) { list.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem;">Noch keine To-Dos angelegt.</div>'; return; }
+                    const grouped = {}; data.data.forEach(t => { if (!grouped[t.phase]) grouped[t.phase] = []; grouped[t.phase].push(t); });
+                    for (const phase in grouped) {
+                        list.innerHTML += `<div class="phase-header">${phase}</div>`;
+                        grouped[phase].forEach(t => {
+                            const isDone = t.is_completed == 1; const isClosed = document.getElementById('modalProjectStatus').innerText.includes('Schreibgeschützt'); const disabledAttr = isClosed ? 'disabled' : '';
+                            let prioHtml = t.priority == 1 ? `<span class="prio-badge" style="background: rgba(239, 68, 68, 0.2); color: var(--accent-red);">Hoch</span>` : (t.priority == 2 ? `<span class="prio-badge" style="background: rgba(245, 158, 11, 0.2); color: var(--accent-orange);">Mittel</span>` : `<span class="prio-badge" style="background: rgba(16, 185, 129, 0.2); color: var(--accent-green);">Niedrig</span>`);
+                            let tTimelineHtml = (t.deadline && !isDone) ? `<span style="color: var(--accent-orange);">⏳ Ziel: ${t.deadline}</span>` : '';
+                            let completedText = (isDone && t.completed_at) ? `<span style="color: var(--accent-green);">✔ Erledigt am: ${t.completed_at.substring(0,10)}</span>` : '';
+                            if (isDone && t.completion_comment) completedText += `<div style="color: var(--text-muted); margin-top:4px; font-style:italic;">💬 "${t.completion_comment}"</div>`;
+                            let assignHtml = t.assigned_username ? `<span style="color: var(--accent-blue);">🙋 Zuweisung: ${t.assigned_username}</span>` : '';
+                            const safeTitle = t.title.replace(/'/g, "\\'").replace(/"/g, '&quot;'); const safePhase = t.phase.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                            let actionsHtml = !isClosed ? `<div class="task-actions"><button class="btn-icon" onclick="openEditTodoModal(${t.id}, '${safeTitle}', '${safePhase}', ${t.priority}, '${t.deadline || ''}', '${t.assigned_to || ''}')" title="Bearbeiten">✏️</button><button class="btn-icon del" onclick="deleteTodo(${t.id}, '${safeTitle}')" title="Löschen">🗑️</button></div>` : '';
+                            list.innerHTML += `<div class="task-item ${isDone ? 'done' : ''}"><input type="checkbox" class="task-checkbox" ${isDone ? 'checked' : ''} ${disabledAttr} onclick="event.preventDefault(); toggleTask(${t.id}, ${t.is_completed})"><div class="task-details"><div style="display: flex; align-items: center; gap: 10px;"><span class="task-text" style="font-size: 1.05rem;">${t.title}</span>${prioHtml}</div><div class="task-meta">${tTimelineHtml} ${assignHtml}</div><div>${completedText}</div></div>${actionsHtml}</div>`;
+                        });
+                    }
+                }
+            });
+        }
+        document.getElementById('taskAddForm').addEventListener('submit', function(e) { e.preventDefault(); const formData = new FormData(); formData.append('project_id', currentProjectId); formData.append('phase', document.getElementById('newTaskPhase').value); formData.append('title', document.getElementById('newTaskTitle').value); formData.append('priority', document.getElementById('newTaskPriority').value); formData.append('deadline', document.getElementById('newTaskDeadline').value); formData.append('assigned_to', document.getElementById('newTaskAssignee').value); fetch('/api/tasks/create', { method: 'POST', body: formData }).then(res=>res.json()).then(data=>{ if(data.success) { document.getElementById('newTaskTitle').value = ''; document.getElementById('newTaskDeadline').value = ''; loadTasks(); } }); });
+        function toggleTask(taskId, currentState) { let comment = ''; if (currentState == 0) { comment = prompt("Kurzer Kommentar zur Erledigung (optional):", ""); if (comment === null) return; } const formData = new FormData(); formData.append('task_id', taskId); formData.append('project_id', currentProjectId); formData.append('comment', comment); fetch('/api/tasks/toggle', { method: 'POST', body: formData }).then(res=>res.json()).then(data=>{ if(data.success) loadTasks(); }); }
+        function deleteTodo(id, title) { if (!confirm(`To-Do "${title}" wirklich löschen?`)) return; const formData = new FormData(); formData.append('task_id', id); fetch('/api/tasks/delete', { method: 'POST', body: formData }).then(res=>res.json()).then(data=>{ if(data.success) loadTasks(); else alert(data.error); }); }
+        function openEditTodoModal(id, title, phase, prio, deadline, assignedTo) { document.getElementById('editTaskId').value = id; document.getElementById('editTaskTitle').value = title; document.getElementById('editTaskPhase').value = phase; document.getElementById('editTaskPriority').value = prio; document.getElementById('editTaskDeadline').value = deadline; document.getElementById('editTaskAssignee').value = assignedTo; document.getElementById('editTaskModal').classList.remove('hidden'); }
+        document.getElementById('taskEditForm').addEventListener('submit', function(e) { e.preventDefault(); const formData = new FormData(); formData.append('task_id', document.getElementById('editTaskId').value); formData.append('title', document.getElementById('editTaskTitle').value); formData.append('phase', document.getElementById('editTaskPhase').value); formData.append('priority', document.getElementById('editTaskPriority').value); formData.append('deadline', document.getElementById('editTaskDeadline').value); formData.append('assigned_to', document.getElementById('editTaskAssignee').value); fetch('/api/tasks/edit', { method: 'POST', body: formData }).then(res=>res.json()).then(data=>{ if(data.success) { document.getElementById('editTaskModal').classList.add('hidden'); loadTasks(); } else alert(data.error); }); });
+
+        function loadAuditLogs() { fetch('/api/logs').then(res => res.json()).then(data => { if (data.success) { const tbody = document.getElementById('logTableBody'); tbody.innerHTML = ''; data.data.forEach(log => { tbody.innerHTML += `<tr><td style="color: var(--text-muted);">${log.timestamp}</td><td><strong>${log.username}</strong></td><td>${log.action}</td><td>${log.target || '-'}</td></tr>`; }); } }); }
+        
+        function saveSpecificSettings(keys, values) { let promises = []; for(let i=0; i<keys.length; i++) { let fd = new FormData(); fd.append('config_key', keys[i]); fd.append('config_value', values[i]); promises.push(fetch('/api/settings', { method: 'POST', body: fd })); } Promise.all(promises).then(() => { alert('Einstellungen erfolgreich gespeichert!'); loadSettings(); }); }
+
+        function loadSettings() { 
+            fetch('/api/settings').then(res => res.json()).then(data => { 
+                if (data.success) { 
+                    const tbody = document.getElementById('settingsTableBody'); tbody.innerHTML = ''; 
+                    const banner = document.getElementById('licenseBannerBox');
+                    let hasLicense = false; let sDict = {};
+
+                    data.data.forEach(setting => { 
+                        sDict[setting.config_key] = setting.config_value;
+                        if (setting.config_key !== 'LICENSE_KEY' && !['GOTIFY_URL', 'GOTIFY_TOKEN', 'SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM'].includes(setting.config_key)) {
+                            tbody.innerHTML += `<tr><td><strong>${setting.config_key}</strong></td><td style="color: var(--text-muted);">${setting.config_value}</td><td style="text-align: right;"><button class="btn-delete" onclick="deleteSetting('${setting.config_key}')">✖</button></td></tr>`; 
+                        }
+                        if (setting.config_key === 'LICENSE_KEY') {
+                            hasLicense = true;
+                            try {
+                                let payloadStr = atob(setting.config_value.split('.')[0]); let payload = JSON.parse(payloadStr);
+                                let isExpired = new Date(payload.expires) < new Date();
+                                if (isExpired) { banner.innerHTML = `<div class="license-banner license-expired"><h3 style="margin:0; color:var(--accent-red);">⚠️ Lizenz abgelaufen</h3><span style="font-size:0.9rem; color:var(--text-muted);">Deine ${payload.tier} ist am ${payload.expires} abgelaufen. CorePlan läuft jetzt im Community Modus.</span></div>`; } 
+                                else { banner.innerHTML = `<div class="license-banner license-active"><h3 style="margin:0; color:var(--accent-green);">✔ ${payload.tier} aktiv</h3><span style="font-size:0.9rem; color:var(--text-muted);">Erlaubt bis zu ${payload.limit} aktive Projekte. Gültig bis: <strong>${payload.expires}</strong></span></div>`; }
+                            } catch(e) { banner.innerHTML = `<div class="license-banner license-expired"><h3 style="margin:0; color:var(--accent-red);">❌ Ungültiger Lizenzschlüssel</h3><span style="font-size:0.9rem; color:var(--text-muted);">Der Schlüssel konnte nicht verifiziert werden.</span></div>`; }
+                        }
+                    }); 
+                    if (!hasLicense) { banner.innerHTML = `<div class="license-banner license-community"><h3 style="margin:0; color:var(--text-main);">Community Edition (Max 3 Projekte)</h3><span style="font-size:0.9rem; color:var(--text-muted);">Hinterlege unten einen gültigen Lizenzschlüssel für unlimitierte Features.</span></div>`; }
+                    
+                    if(document.getElementById('setGotifyUrl')) document.getElementById('setGotifyUrl').value = sDict['GOTIFY_URL'] || '';
+                    if(document.getElementById('setGotifyToken')) document.getElementById('setGotifyToken').value = sDict['GOTIFY_TOKEN'] || '';
+                    if(document.getElementById('setSmtpHost')) document.getElementById('setSmtpHost').value = sDict['SMTP_HOST'] || '';
+                    if(document.getElementById('setSmtpPort')) document.getElementById('setSmtpPort').value = sDict['SMTP_PORT'] || '';
+                    if(document.getElementById('setSmtpUser')) document.getElementById('setSmtpUser').value = sDict['SMTP_USER'] || '';
+                    if(document.getElementById('setSmtpPass')) document.getElementById('setSmtpPass').value = sDict['SMTP_PASS'] || '';
+                    if(document.getElementById('setSmtpFrom')) document.getElementById('setSmtpFrom').value = sDict['SMTP_FROM'] || '';
+                } 
+            }); 
+        }
+
+        function testGotify() { fetch('/api/settings/test-gotify', { method: 'POST' }).then(res => res.json()).then(data => { if(data.success) alert("Test-Push erfolgreich an Gotify gesendet!"); else alert("Fehler: " + data.error); }); }
+        function testSmtp() { alert("Sende Test-Mail... Dies kann ein paar Sekunden dauern."); fetch('/api/settings/test-smtp', { method: 'POST' }).then(res => res.json()).then(data => { if(data.success) alert("Test-E-Mail erfolgreich an deine Admin-Adresse gesendet!"); else alert("SMTP Fehler: " + data.error); }); }
+
+        document.getElementById('licenseForm').addEventListener('submit', function(e) { e.preventDefault(); const formData = new FormData(); formData.append('config_key', 'LICENSE_KEY'); formData.append('config_value', document.getElementById('licenseInput').value); fetch('/api/settings', { method: 'POST', body: formData }).then(res => res.json()).then(data => { if (data.success) { document.getElementById('licenseInput').value = ''; loadSettings(); } }); });
+        
+        // --- USERS ---
+        function loadUsers() { fetch('/api/users').then(res => res.json()).then(data => { if (data.success) { const tbody = document.getElementById('usersTableBody'); tbody.innerHTML = ''; data.data.forEach(u => { const safeName = u.username.replace(/'/g, "\\'"); const safeEmail = (u.email || '').replace(/'/g, "\\'"); tbody.innerHTML += `<tr><td>${u.id}</td><td><strong>${u.username}</strong></td><td>${u.email || '-'}</td><td><span class="badge">${u.role}</span></td><td style="text-align: right;"><button class="btn-icon" onclick="openEditUserModal(${u.id}, '${safeName}', '${safeEmail}', '${u.role}')" title="Bearbeiten">✏️</button><button class="btn-icon del" onclick="deleteUser(${u.id})" title="Löschen">🗑️</button></td></tr>`; }); } }); }
+        
+        function openEditUserModal(id, username, email, role) { document.getElementById('editUserId').value = id; document.getElementById('editUserName').value = username; document.getElementById('editUserEmail').value = email; document.getElementById('editUserRole').value = role; document.getElementById('editUserPass').value = ''; document.getElementById('editUserModal').classList.remove('hidden'); }
+        document.getElementById('userEditForm').addEventListener('submit', function(e) { e.preventDefault(); const formData = new FormData(); formData.append('id', document.getElementById('editUserId').value); formData.append('username', document.getElementById('editUserName').value); formData.append('email', document.getElementById('editUserEmail').value); formData.append('role', document.getElementById('editUserRole').value); formData.append('password', document.getElementById('editUserPass').value); fetch('/api/users/edit', { method: 'POST', body: formData }).then(res => res.json()).then(data => { if(data.success) { document.getElementById('editUserModal').classList.add('hidden'); loadUsers(); fetchAllUsers(); } else alert(data.error); }); });
+
+        function deleteSetting(key) { if (!confirm(`Einstellung "${key}" wirklich löschen?`)) return; const formData = new FormData(); formData.append('config_key', key); fetch('/api/settings/delete', { method: 'POST', body: formData }).then(res => res.json()).then(data => { if (data.success) loadSettings(); else alert(data.error); }); }
+        function deleteUser(id) { if (!confirm('Diesen Benutzer wirklich löschen?')) return; const formData = new FormData(); formData.append('id', id); fetch('/api/users/delete', { method: 'POST', body: formData }).then(res => res.json()).then(data => { if (data.success) { loadUsers(); fetchAllUsers(); } else alert(data.error); }); }
+        document.getElementById('settingsForm').addEventListener('submit', function(e) { e.preventDefault(); const formData = new FormData(); formData.append('config_key', document.getElementById('configKey').value); formData.append('config_value', document.getElementById('configValue').value); fetch('/api/settings', { method: 'POST', body: formData }).then(res => res.json()).then(data => { if (data.success) { document.getElementById('configKey').value = ''; document.getElementById('configValue').value = ''; loadSettings(); } }); });
+        document.getElementById('userForm').addEventListener('submit', function(e) { e.preventDefault(); const formData = new FormData(); formData.append('username', document.getElementById('newUsername').value); formData.append('email', document.getElementById('newUserEmail').value); formData.append('password', document.getElementById('newUserPass').value); formData.append('role', document.getElementById('newUserRole').value); fetch('/api/users', { method: 'POST', body: formData }).then(res => res.json()).then(data => { if (data.success) { document.getElementById('newUsername').value = ''; document.getElementById('newUserEmail').value = ''; document.getElementById('newUserPass').value = ''; loadUsers(); fetchAllUsers(); } else { alert(data.error); } }); });
+    </script>
+</body>
+</html>

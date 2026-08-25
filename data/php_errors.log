@@ -1,0 +1,8 @@
+[25-Aug-2026 09:59:23 UTC] Exception: SQLSTATE[HY000]: General error: 1 no such column: closed_at in /var/www/html/projects.php on line 96
+[25-Aug-2026 09:59:29 UTC] Exception: SQLSTATE[HY000]: General error: 1 no such column: closed_at in /var/www/html/projects.php on line 96
+[25-Aug-2026 09:59:35 UTC] Exception: SQLSTATE[HY000]: General error: 1 no such column: closed_at in /var/www/html/projects.php on line 96
+[25-Aug-2026 10:01:24 UTC] Exception: SQLSTATE[HY000]: General error: 1 no such column: closed_at in /var/www/html/projects.php on line 96
+[25-Aug-2026 10:29:45 UTC] Error [2]: Cannot modify header information - headers already sent by (output started at /var/www/html/auth.php:1) in /var/www/html/router.php on line 6
+[25-Aug-2026 10:29:45 UTC] Exception: Cannot modify header information - headers already sent by (output started at /var/www/html/auth.php:1) in /var/www/html/router.php on line 6
+[25-Aug-2026 10:29:52 UTC] Error [2]: Cannot modify header information - headers already sent by (output started at /var/www/html/auth.php:1) in /var/www/html/router.php on line 6
+[25-Aug-2026 10:29:52 UTC] Exception: Cannot modify header information - headers already sent by (output started at /var/www/html/auth.php:1) in /var/www/html/router.php on line 6
