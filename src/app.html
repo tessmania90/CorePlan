@@ -8,10 +8,7 @@
         :root { --bg-color: #12141c; --surface-color: #1e212b; --surface-hover: #2a2e3d; --text-main: #ffffff; --text-muted: #8b92a5; --accent-blue: #3b82f6; --accent-red: #ef4444; --accent-green: #10b981; --accent-orange: #f59e0b; }
         body { background-color: var(--bg-color); color: var(--text-main); font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
         .container { background-color: var(--surface-color); padding: 2.5rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 100%; max-width: 350px; margin-top: 10vh; }
-        
-        /* NEU: Maximale Breite deutlich erhöht für das neue Grid */
         .dashboard-container { max-width: 1400px; width: 98%; padding: 2rem; margin-top: 0; }
-        
         h1, h2, h3 { margin-top: 0; } h1 { font-size: 1.5rem; text-align: center; }
         .form-group { margin-bottom: 1.5rem; } label { display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem; }
         input, select, textarea { width: 100%; box-sizing: border-box; padding: 0.75rem; background-color: var(--bg-color); border: 1px solid var(--surface-hover); color: white; border-radius: 6px; outline: none; transition: border 0.2s; font-family: inherit; }
@@ -112,12 +109,11 @@
                 </div>
             </div>
             
-            <!-- NEUES LAYOUT: Links (Deadlines+Projekte oben, Kalender unten), Rechts (Aufgaben) -->
             <div style="display: flex; gap: 2rem; align-items: stretch; flex-wrap: wrap;">
                 
                 <!-- LINKE SPALTE -->
                 <div style="flex: 1.2; min-width: 450px; display: flex; flex-direction: column; gap: 1.5rem;">
-                    <!-- OBERE REIHE: Deadlines & Projekte -->
+                    <!-- OBERE REIHE -->
                     <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: stretch;">
                         <div class="deadline-box" style="flex: 1; min-width: 200px; margin: 0;">
                             <h3 style="margin-top: 0; margin-bottom: 1rem; color: var(--accent-orange);">🚨 Deadlines (7 Tage)</h3>
@@ -132,7 +128,7 @@
                         </div>
                     </div>
 
-                    <!-- UNTERE REIHE: Kalender (über volle Breite der linken Spalte) -->
+                    <!-- UNTERE REIHE: Kalender -->
                     <div class="deadline-box" style="margin: 0; border-left-color: var(--accent-blue);">
                          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
                             <button onclick="changeCalMonth(-1)" style="width:auto; padding:5px 10px; background:var(--surface-color); color:var(--text-main);">&lt;</button>
@@ -261,7 +257,7 @@
         </div>
     </div>
 
-    <!-- COMMENTS MODAL (Neu: Task Notizen) -->
+    <!-- COMMENTS MODAL (Task Notizen) -->
     <div id="commentsModal" class="modal-overlay hidden" style="z-index: 1070; background: rgba(0,0,0,0.85);">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header"><h3 id="commentsTaskTitle" style="margin:0; font-size:1.1rem; color:var(--accent-blue);">Notizen</h3><button class="btn-close" onclick="document.getElementById('commentsModal').classList.add('hidden')">✖</button></div>
@@ -365,7 +361,6 @@
                         }
                     });
 
-                    // Tasks entschlackt gruppiert mit Prio-Accordions
                     if(data.tasks.length === 0) {
                         tGrid.innerHTML = '<span style="color:var(--text-muted);">Keine offenen Aufgaben. Gut gemacht!</span>';
                     } else {
@@ -581,7 +576,17 @@
 
         function loadAuditLogs() { fetch('/api/logs').then(res => res.json()).then(data => { if (data.success) { const tbody = document.getElementById('logTableBody'); tbody.innerHTML = ''; data.data.forEach(log => { tbody.innerHTML += `<tr><td style="color: var(--text-muted);">${log.timestamp}</td><td><strong>${log.username}</strong></td><td>${log.action}</td><td>${log.target || '-'}</td></tr>`; }); } }); }
         
-        function saveSpecificSettings(keys, values) { let promises = []; for(let i=0; i<keys.length; i++) { let fd = new FormData(); fd.append('config_key', keys[i]); fd.append('config_value', values[i]); promises.push(fetch('/api/settings', { method: 'POST', body: fd })); } Promise.all(promises).then(() => { alert('Einstellungen erfolgreich gespeichert!'); loadSettings(); }); }
+        // NEU: Asynchrone Funktion zur Vermeidung von SQLite "database is locked" Errors
+        async function saveSpecificSettings(keys, values) { 
+            for(let i=0; i<keys.length; i++) { 
+                let fd = new FormData(); 
+                fd.append('config_key', keys[i]); 
+                fd.append('config_value', values[i]); 
+                await fetch('/api/settings', { method: 'POST', body: fd }); 
+            } 
+            alert('Einstellungen erfolgreich gespeichert!'); 
+            loadSettings(); 
+        }
 
         function loadSettings() { 
             fetch('/api/settings').then(res => res.json()).then(data => { 
