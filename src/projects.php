@@ -7,7 +7,7 @@ function getProjectLimit() {
     $parts = explode('.', $license);
     if (count($parts) !== 2) return 3;
     $payload = json_decode(base64_decode($parts[0]), true);
-    $secret = 'TESSMANN_COREPLAN_SECURE_2026_MASTER_KEY';
+    $secret = 'hierkoennteetwasgeheimesstehenwasnichtsofortjederverstehtabermankannesjaversuchenzuerraten';
     $expectedSig = hash_hmac('sha256', $parts[0], $secret);
     if (!hash_equals($expectedSig, $parts[1])) return 3;
     if (isset($payload['expires']) && strtotime($payload['expires']) < time()) return 3;
@@ -19,15 +19,34 @@ function isPMorAdmin() { return in_array($_SESSION['role'] ?? '', ['admin', 'pm'
 function handleGetProjects() {
     global $pdo; @session_start();
     if (!isset($_SESSION['user_id'])) { http_response_code(401); exit; }
-    $stmt = $pdo->query("
-        SELECT p.*, u.username as assigned_username,
-               (SELECT COUNT(*) FROM tasks WHERE project_id = p.id) as total_tasks,
-               (SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND is_completed = 1) as completed_tasks
-        FROM projects p 
-        LEFT JOIN users u ON p.assigned_to = u.id
-        ORDER BY CASE WHEN p.status = 'closed' THEN 1 WHEN p.status = 'canceled' THEN 2 ELSE 0 END, p.deadline ASC, p.id DESC
-    ");
-    echo json_encode(['success' => true, 'data' => $stmt->fetchAll()]); exit;
+
+    $role = $_SESSION['role'] ?? 'user';
+    $userId = $_SESSION['user_id'];
+
+    // BUGFIX: Normale User sehen nur Projekte, die ihnen zugewiesen sind!
+    if ($role === 'admin' || $role === 'pm') {
+        $stmt = $pdo->query("
+            SELECT p.*, u.username as assigned_username,
+                   (SELECT COUNT(*) FROM tasks WHERE project_id = p.id) as total_tasks,
+                   (SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND is_completed = 1) as completed_tasks
+            FROM projects p 
+            LEFT JOIN users u ON p.assigned_to = u.id
+            ORDER BY CASE WHEN p.status = 'closed' THEN 1 WHEN p.status = 'canceled' THEN 2 ELSE 0 END, p.deadline ASC, p.id DESC
+        ");
+        echo json_encode(['success' => true, 'data' => $stmt->fetchAll()]); exit;
+    } else {
+        $stmt = $pdo->prepare("
+            SELECT p.*, u.username as assigned_username,
+                   (SELECT COUNT(*) FROM tasks WHERE project_id = p.id) as total_tasks,
+                   (SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND is_completed = 1) as completed_tasks
+            FROM projects p 
+            LEFT JOIN users u ON p.assigned_to = u.id
+            WHERE p.assigned_to = ?
+            ORDER BY CASE WHEN p.status = 'closed' THEN 1 WHEN p.status = 'canceled' THEN 2 ELSE 0 END, p.deadline ASC, p.id DESC
+        ");
+        $stmt->execute([$userId]);
+        echo json_encode(['success' => true, 'data' => $stmt->fetchAll()]); exit;
+    }
 }
 
 function handleCreateProject() {
@@ -100,6 +119,31 @@ function handleDeleteProject() {
     $pdo->prepare("DELETE FROM projects WHERE id = ?")->execute([$id]);
     $pdo->prepare("INSERT INTO audit_logs (user_id, username, action, target) VALUES (?, ?, ?, ?)")->execute([$_SESSION['user_id'], $_SESSION['username'], 'Projekt gelöscht', "ID: $id"]);
     echo json_encode(['success' => true]); exit;
+}
+
+// NEU: Backend für den Projekt Print Report
+function handleGetProjectReport() {
+    global $pdo; @session_start();
+    if (!isset($_SESSION['user_id'])) { http_response_code(401); exit; }
+    $id = $_GET['id'] ?? 0;
+    
+    // Projekt ziehen
+    $stmt = $pdo->prepare("SELECT p.*, u.username as assigned_username FROM projects p LEFT JOIN users u ON p.assigned_to = u.id WHERE p.id = ?");
+    $stmt->execute([$id]);
+    $project = $stmt->fetch();
+    if (!$project) { echo json_encode(['success' => false]); exit; }
+
+    // Tasks ziehen
+    $stmt = $pdo->prepare("SELECT t.*, u.username as assigned_username FROM tasks t LEFT JOIN users u ON t.assigned_to = u.id WHERE t.project_id = ? ORDER BY t.is_completed ASC, t.phase ASC, t.priority ASC");
+    $stmt->execute([$id]);
+    $tasks = $stmt->fetchAll();
+
+    // Alle Kommentare zu diesen Tasks ziehen
+    $stmt = $pdo->prepare("SELECT c.* FROM task_comments c JOIN tasks t ON c.task_id = t.id WHERE t.project_id = ? ORDER BY c.created_at ASC");
+    $stmt->execute([$id]);
+    $comments = $stmt->fetchAll();
+
+    echo json_encode(['success' => true, 'project' => $project, 'tasks' => $tasks, 'comments' => $comments]); exit;
 }
 
 function handleGetTasks() {
@@ -189,7 +233,6 @@ function handleGetMyArea() {
     echo json_encode(['success' => true, 'projects' => $myProjects, 'tasks' => $myTasks]); exit;
 }
 
-// NEU: Task Notizen laden
 function handleGetTaskComments() {
     global $pdo; @session_start();
     if (!isset($_SESSION['user_id'])) { http_response_code(401); exit; }
@@ -199,7 +242,6 @@ function handleGetTaskComments() {
     echo json_encode(['success' => true, 'data' => $stmt->fetchAll()]); exit;
 }
 
-// NEU: Task Notiz hinzufügen
 function handleAddTaskComment() {
     global $pdo; @session_start();
     if (!isset($_SESSION['user_id'])) { http_response_code(401); exit; }

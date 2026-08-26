@@ -102,7 +102,6 @@ function handleCreateUser() {
     exit;
 }
 
-// --- NEU: USER BEARBEITEN ---
 function handleEditUser() {
     global $pdo; @session_start();
     if (($_SESSION['role'] ?? '') !== 'admin') { http_response_code(403); exit; }
@@ -111,7 +110,7 @@ function handleEditUser() {
     $username = trim($_POST['username'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $role = $_POST['role'] ?? 'user';
-    $password = $_POST['password'] ?? ''; // Optional
+    $password = $_POST['password'] ?? ''; 
     
     if (!in_array($role, ['admin', 'pm', 'user'])) $role = 'user';
     
@@ -122,6 +121,11 @@ function handleEditUser() {
         } else {
             $pdo->prepare("UPDATE users SET username = ?, email = ?, role = ? WHERE id = ?")->execute([$username, $email, $role, $id]);
         }
+        
+        // BUGFIX: Alte Logeinträge und aktuelle Session bei Namensänderung aktualisieren
+        $pdo->prepare("UPDATE audit_logs SET username = ? WHERE user_id = ?")->execute([$username, $id]);
+        if ($id == $_SESSION['user_id']) { $_SESSION['username'] = $username; }
+
         $pdo->prepare("INSERT INTO audit_logs (user_id, username, action, target) VALUES (?, ?, ?, ?)")->execute([$_SESSION['user_id'], $_SESSION['username'], 'User bearbeitet', "User ID: $id ($username)"]);
         echo json_encode(['success' => true]);
     } catch (PDOException $e) {
@@ -160,3 +164,53 @@ function handleTestGotify() {
     if($res === true) echo json_encode(['success' => true]); else echo json_encode(['success' => false, 'error' => $res]);
     exit;
 }
+
+// --- NEU: PASSWORD RECOVERY SYSTEM ---
+function handleForgotPassword() {
+    global $pdo;
+    $email = trim($_POST['email'] ?? '');
+    if (empty($email)) { echo json_encode(['success' => true]); exit; } // Anti-Enumeration
+
+    $stmt = $pdo->prepare("SELECT id, username FROM users WHERE email = ?");
+    $stmt->execute([$email]);
+    $user = $stmt->fetch();
+
+    if ($user) {
+        $token = bin2hex(random_bytes(32));
+        $expires = date('Y-m-d H:i:s', time() + 3600); // 1 Std
+        $pdo->prepare("UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?")->execute([$token, $expires, $user['id']]);
+
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+        $resetLink = $protocol . $_SERVER['HTTP_HOST'] . "/?reset_token=" . $token;
+
+        $subject = "CorePlan - Passwort zurücksetzen";
+        $message = "Hallo " . $user['username'] . ",\n\njemand hat das Zurücksetzen deines Passworts angefordert.\n\nKlicke auf diesen Link, um ein neues Passwort zu vergeben (der Link ist 60 Minuten gültig):\n$resetLink\n\nFalls du das nicht warst, kannst du diese E-Mail einfach ignorieren.\n\nDein CorePlan System";
+        
+        sendSmtpMail($email, $subject, $message);
+        $pdo->prepare("INSERT INTO audit_logs (user_id, username, action, target) VALUES (?, ?, ?, ?)")->execute([$user['id'], $user['username'], 'Password Reset angefordert', $_SERVER['REMOTE_ADDR']]);
+    }
+    echo json_encode(['success' => true]); exit;
+}
+
+function handleResetPassword() {
+    global $pdo;
+    $token = trim($_POST['reset_token'] ?? '');
+    $newPass = $_POST['new_password'] ?? '';
+
+    if (empty($token) || strlen($newPass) < 4) { echo json_encode(['success' => false, 'error' => 'Ungültige Eingabe oder Passwort zu kurz.']); exit; }
+
+    $stmt = $pdo->prepare("SELECT id, username FROM users WHERE reset_token = ? AND reset_expires > CURRENT_TIMESTAMP");
+    $stmt->execute([$token]);
+    $user = $stmt->fetch();
+
+    if ($user) {
+        $hash = password_hash($newPass, PASSWORD_DEFAULT);
+        $pdo->prepare("UPDATE users SET password_hash = ?, reset_token = NULL, reset_expires = NULL WHERE id = ?")->execute([$hash, $user['id']]);
+        $pdo->prepare("INSERT INTO audit_logs (user_id, username, action, target) VALUES (?, ?, ?, ?)")->execute([$user['id'], $user['username'], 'Password erfolgreich resettet', $_SERVER['REMOTE_ADDR']]);
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode(['success' => false, 'error' => 'Token ungültig oder abgelaufen.']);
+    }
+    exit;
+}
+?>

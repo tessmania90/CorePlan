@@ -62,7 +62,6 @@
         .deadline-warn { background: rgba(245, 158, 11, 0.1); border-left: 3px solid var(--accent-orange); }
         .deadline-danger { background: rgba(239, 68, 68, 0.2); border-left: 3px solid var(--accent-red); color: var(--accent-red); }
 
-        /* Kalender CSS */
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 10px;}
         .cal-day-header { text-align: center; font-size: 0.75rem; color: var(--text-muted); font-weight: bold; margin-bottom: 5px; }
         .cal-day { background: var(--bg-color); min-height: 50px; border-radius: 4px; padding: 5px; font-size: 0.8rem; position: relative; border: 1px solid transparent; cursor: pointer; transition: background 0.2s; }
@@ -70,13 +69,26 @@
         .cal-day.today { border-color: var(--accent-blue); }
         .cal-day.empty { background: transparent; cursor: default; }
         .cal-event-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-top: 2px; margin-right: 2px; }
-        
-        /* Accordion CSS für native Details */
         details > summary { list-style: none; user-select: none; }
         details > summary::-webkit-details-marker { display: none; }
+
+        /* NEU: Native Print PDF Report Styles */
+        @media print {
+            body { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; }
+            .container, .modal-overlay, #dashboardView, #loginView, #forgotView, #resetView { display: none !important; }
+            #printArea { display: block !important; position: absolute; left: 0; top: 0; width: 100%; background: white; color: black; font-family: Arial, sans-serif; padding: 10mm; }
+            #printArea h1 { color: #3b82f6; text-align: left; border-bottom: 2px solid #ccc; padding-bottom: 10px; margin-bottom: 20px;}
+            #printArea h2 { color: #555; margin-top: 30px; border-bottom: 1px solid #ccc; padding-bottom: 5px;}
+            .print-task { border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 6px; page-break-inside: avoid; }
+            .print-task h3 { margin: 0 0 10px 0; font-size: 1.1rem; }
+            .print-comment { padding-left: 20px; font-style: italic; color: #555; margin-bottom: 5px; font-size: 0.9rem;}
+        }
     </style>
 </head>
 <body>
+
+    <!-- DRUCK BEREICH (Unsichtbar im Browser, sichtbar beim Drucken) -->
+    <div id="printArea" style="display: none;"></div>
 
     <div class="container" id="loginView">
         <h1>CorePlan Login</h1>
@@ -85,6 +97,30 @@
             <div class="form-group"><label>Benutzername</label><input type="text" id="username" required></div>
             <div class="form-group"><label>Passwort</label><input type="password" id="password" required></div>
             <button type="submit">Anmelden</button>
+            <div style="text-align:center; margin-top:1rem; font-size:0.8rem;"><a href="#" onclick="toggleAuthView('forgot')" style="color:var(--text-muted); text-decoration:none;">Passwort vergessen?</a></div>
+        </form>
+    </div>
+
+    <!-- Passwort Vergessen -->
+    <div class="container hidden" id="forgotView">
+        <h1>Passwort zurücksetzen</h1>
+        <p style="font-size:0.85rem; color:var(--text-muted); text-align:center;">Gib deine E-Mail Adresse ein. Wenn ein Account existiert, senden wir dir einen Link.</p>
+        <div class="error-msg" id="forgotError" style="color:var(--accent-green);"></div>
+        <form id="forgotForm">
+            <div class="form-group"><label>E-Mail Adresse</label><input type="email" id="forgotEmail" required></div>
+            <button type="submit">Link anfordern</button>
+            <div style="text-align:center; margin-top:1rem; font-size:0.8rem;"><a href="#" onclick="toggleAuthView('login')" style="color:var(--text-muted); text-decoration:none;">Zurück zum Login</a></div>
+        </form>
+    </div>
+
+    <!-- Neues Passwort vergeben -->
+    <div class="container hidden" id="resetView">
+        <h1>Neues Passwort</h1>
+        <div class="error-msg" id="resetError"></div>
+        <form id="resetForm">
+            <input type="hidden" id="resetToken">
+            <div class="form-group"><label>Neues Passwort</label><input type="password" id="resetPassword" required minlength="4"></div>
+            <button type="submit">Passwort speichern</button>
         </form>
     </div>
 
@@ -156,7 +192,7 @@
         </div>
 
         <div id="tabProjects" class="hidden">
-            <div class="log-container">
+            <div class="log-container" id="newProjectFormContainer">
                 <h3 style="margin-top: 0; margin-bottom: 1rem;">Neues Projekt starten</h3>
                 <form id="projectForm" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start;">
                     <div style="flex: 1; min-width: 200px;"><input type="text" id="projTitle" placeholder="Projekt Titel" required></div>
@@ -235,7 +271,13 @@
                 <div style="display:flex; justify-content: space-between; margin-bottom: 1rem;"><span id="modalProjectStatus" class="badge">Aktiv</span></div>
                 <div id="modalBriefingBox" class="info-box hidden"><strong>Steckbrief:</strong> <div id="modalBriefingText" style="margin-top: 5px; line-height: 1.4;"></div></div>
                 <div id="modalCloseComment" style="display:none; color: var(--text-muted); font-size: 0.9rem; font-style: italic; margin-bottom: 1.5rem; border-left: 3px solid var(--surface-hover); padding-left: 10px;"></div>
-                <div id="pmControls" class="pm-controls hidden"><button onclick="assignProjectToMe()" style="background-color: var(--surface-color); border: 1px solid var(--text-muted); color: var(--text-main); width: auto; font-size: 0.85rem;">🙋 Mir zuweisen</button><button onclick="extendProject()" style="background-color: var(--accent-blue); width: auto; font-size: 0.85rem;">⏳ Verlängern</button><button onclick="closeProject('closed')" style="background-color: var(--accent-green); width: auto; font-size: 0.85rem;">✔ Abschließen</button><button onclick="closeProject('canceled')" style="background-color: var(--accent-red); width: auto; font-size: 0.85rem;">✖ Abbrechen</button></div>
+                <div id="pmControls" class="pm-controls hidden">
+                    <button onclick="assignProjectToMe()" style="background-color: var(--surface-color); border: 1px solid var(--text-muted); color: var(--text-main); width: auto; font-size: 0.85rem;">🙋 Mir zuweisen</button>
+                    <button onclick="extendProject()" style="background-color: var(--accent-blue); width: auto; font-size: 0.85rem;">⏳ Verlängern</button>
+                    <button onclick="closeProject('closed')" style="background-color: var(--accent-green); width: auto; font-size: 0.85rem;">✔ Abschließen</button>
+                    <button onclick="closeProject('canceled')" style="background-color: var(--accent-red); width: auto; font-size: 0.85rem;">✖ Abbrechen</button>
+                    <button id="btnReport" onclick="generateReport()" style="background-color: var(--surface-color); border: 1px solid var(--accent-orange); color: var(--accent-orange); width: auto; font-size: 0.85rem; margin-left: auto;">📄 Report</button>
+                </div>
                 <form id="taskAddForm" style="display: flex; gap: 10px; margin-bottom: 2rem; flex-wrap: wrap; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
                     <input type="text" id="newTaskPhase" placeholder="Phase (z.B. Phase 1)" required style="flex: 1; min-width: 120px;">
                     <input type="text" id="newTaskTitle" placeholder="Neues To-Do..." required style="flex: 2; min-width: 200px;">
@@ -305,13 +347,61 @@
         let currentUserRole = 'user'; let currentUserId = null; let allUsers = [];
         let currentCalDate = new Date(); let cachedProjects = []; let cachedTasks = [];
 
-        document.addEventListener('DOMContentLoaded', checkSession);
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('reset_token');
+            if (token) {
+                document.getElementById('loginView').classList.add('hidden');
+                document.getElementById('dashboardView').classList.add('hidden');
+                document.getElementById('resetView').classList.remove('hidden');
+                document.getElementById('resetToken').value = token;
+            } else {
+                checkSession();
+            }
+        });
+
+        function toggleAuthView(view) {
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('forgotView').classList.add('hidden');
+            document.getElementById('resetView').classList.add('hidden');
+            document.getElementById(view + 'View').classList.remove('hidden');
+            document.getElementById('forgotError').style.display = 'none';
+        }
+
+        document.getElementById('forgotForm').addEventListener('submit', function(e) { 
+            e.preventDefault(); 
+            const fd = new FormData(); fd.append('email', document.getElementById('forgotEmail').value); 
+            fetch('/api/password/forgot', { method: 'POST', body: fd }).then(res => res.json()).then(data => { 
+                const msgBox = document.getElementById('forgotError');
+                msgBox.innerText = 'Falls die E-Mail existiert, wurde ein Link versendet.';
+                msgBox.style.color = 'var(--accent-green)';
+                msgBox.style.display = 'block';
+                document.getElementById('forgotForm').reset();
+            }); 
+        });
+
+        document.getElementById('resetForm').addEventListener('submit', function(e) { 
+            e.preventDefault(); 
+            const fd = new FormData(); 
+            fd.append('reset_token', document.getElementById('resetToken').value); 
+            fd.append('new_password', document.getElementById('resetPassword').value); 
+            fetch('/api/password/reset', { method: 'POST', body: fd }).then(res => res.json()).then(data => { 
+                if(data.success) {
+                    alert('Passwort erfolgreich geändert! Du kannst dich jetzt anmelden.');
+                    window.location.href = '/';
+                } else {
+                    const msgBox = document.getElementById('resetError');
+                    msgBox.innerText = data.error; msgBox.style.display = 'block';
+                }
+            }); 
+        });
 
         function checkSession() {
             fetch('/api/me').then(res => res.json()).then(data => {
                 if (data.success) { 
                     currentUserRole = data.role; currentUserId = data.user_id; document.getElementById('userRoleDisplay').innerText = data.role.toUpperCase();
                     if(currentUserRole !== 'admin') { document.getElementById('navLogs').style.display = 'none'; document.getElementById('navSettings').style.display = 'none'; document.getElementById('navUsers').style.display = 'none'; }
+                    if(currentUserRole === 'user') { document.getElementById('newProjectFormContainer').style.display = 'none'; }
                     fetchAllUsers(); showDashboard(data.username); 
                 } else { document.getElementById('loginView').classList.remove('hidden'); }
             });
@@ -335,7 +425,6 @@
         function showDashboard(username) { document.getElementById('loginView').classList.add('hidden'); document.getElementById('dashboardView').classList.remove('hidden'); document.getElementById('userNameDisplay').innerText = username; toggleView('myarea'); }
         function toggleView(tab) { document.getElementById('tabMyarea').classList.add('hidden'); document.getElementById('tabProjects').classList.add('hidden'); document.getElementById('tabLogs').classList.add('hidden'); document.getElementById('tabSettings').classList.add('hidden'); document.getElementById('tabUsers').classList.add('hidden'); const target = document.getElementById('tab'+tab.charAt(0).toUpperCase() + tab.slice(1)); if (target) target.classList.remove('hidden'); if (tab === 'projects') loadProjects(); else if (tab === 'logs') loadAuditLogs(); else if (tab === 'settings') loadSettings(); else if (tab === 'users') loadUsers(); else if (tab === 'myarea') loadMyArea(); }
 
-        // --- MEIN BEREICH, TASKS & KALENDER ---
         function loadMyArea() {
             fetch('/api/myarea').then(res => res.json()).then(data => {
                 if(data.success) {
@@ -422,7 +511,7 @@
         function renderCalendar() {
             const year = currentCalDate.getFullYear(); const month = currentCalDate.getMonth(); const today = new Date();
             const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate();
-            let firstDayIndex = firstDay === 0 ? 6 : firstDay - 1; // Start with Monday
+            let firstDayIndex = firstDay === 0 ? 6 : firstDay - 1;
             const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
             
             document.getElementById('calMonthYear').innerText = `${monthNames[month]} ${year}`;
@@ -470,7 +559,6 @@
             document.getElementById('dayViewModal').classList.remove('hidden');
         }
         
-        // --- COMMENTS (Notizen) ---
         function openComments(taskId, title) {
             document.getElementById('commentTaskId').value = taskId;
             document.getElementById('commentsTaskTitle').innerText = 'Notizen: ' + title;
@@ -502,7 +590,6 @@
 
         function toggleTaskGlobal(taskId, projectId, state) { let comment = prompt("Kurzer Kommentar zur Erledigung:", ""); if (comment === null) return; const formData = new FormData(); formData.append('task_id', taskId); formData.append('project_id', projectId); formData.append('comment', comment); fetch('/api/tasks/toggle', { method: 'POST', body: formData }).then(res=>res.json()).then(data=>{ if(data.success) loadMyArea(); }); }
 
-        // --- PROJEKTE ---
         function loadProjects() {
             fetch('/api/projects').then(res => res.json()).then(data => {
                 if (data.success) {
@@ -537,13 +624,45 @@
             const briefingBox = document.getElementById('modalBriefingBox'); const briefingText = document.getElementById('modalBriefingText');
             if (briefing && briefing.trim() !== '') { briefingText.innerHTML = briefing; briefingBox.classList.remove('hidden'); } else { briefingBox.classList.add('hidden'); }
             if (status !== 'active') { badge.innerText = status === 'canceled' ? 'Abgebrochen (Schreibgeschützt)' : 'Abgeschlossen (Schreibgeschützt)'; badge.style.background = status === 'canceled' ? 'var(--accent-red)' : 'var(--text-muted)'; pmControls.classList.add('hidden'); taskForm.style.display = 'none'; if (closeComment) { commentBox.innerText = `"${closeComment}"`; commentBox.style.display = 'block'; } else { commentBox.style.display = 'none'; } } 
-            else { badge.innerText = 'Aktiv'; badge.style.background = 'var(--accent-green)'; taskForm.style.display = 'flex'; commentBox.style.display = 'none'; if(currentUserRole === 'pm' || currentUserRole === 'admin') pmControls.classList.remove('hidden'); else pmControls.classList.add('hidden'); }
+            else { badge.innerText = 'Aktiv'; badge.style.background = 'var(--accent-green)'; taskForm.style.display = 'flex'; commentBox.style.display = 'none'; if(currentUserRole === 'pm' || currentUserRole === 'admin') { pmControls.classList.remove('hidden'); document.getElementById('btnReport').style.display = 'inline-block'; } else { pmControls.classList.add('hidden'); document.getElementById('btnReport').style.display = 'none'; } }
             loadTasks();
         }
         function closeTaskModal() { document.getElementById('taskModal').classList.add('hidden'); currentProjectId = null; loadProjects(); }
         function assignProjectToMe() { if(!confirm('Möchtest du die Verantwortung für dieses Projekt übernehmen?')) return; const formData = new FormData(); formData.append('id', currentProjectId); fetch('/api/projects/assign', { method: 'POST', body: formData }).then(res=>res.json()).then(data=>{ if(data.success) { alert('Projekt zugewiesen!'); loadProjects(); } else alert(data.error); }); }
         function extendProject() { const newDate = prompt("Bitte neue Deadline eingeben (JJJJ-MM-TT):", ""); if (!newDate) return; const formData = new FormData(); formData.append('id', currentProjectId); formData.append('deadline', newDate); fetch('/api/projects/extend', { method: 'POST', body: formData }).then(res=>res.json()).then(data=>{ if(data.success) closeTaskModal(); else alert(data.error); }); }
         function closeProject(status) { const actionText = status === 'canceled' ? 'Abbruch' : 'Abschluss'; const comment = prompt(`Bitte hinterlasse einen zwingenden Kommentar zum ${actionText}:`, ""); if (!comment) { alert('Aktion abgebrochen.'); return; } if(!confirm(`Bist du sicher? Das Projekt wird permanent auf "${status}" gesetzt!`)) return; const formData = new FormData(); formData.append('id', currentProjectId); formData.append('status', status); formData.append('comment', comment); fetch('/api/projects/close', { method: 'POST', body: formData }).then(res=>res.json()).then(data=>{ if(data.success) closeTaskModal(); else alert(data.error); }); }
+
+        // NEU: Native Print-Report Engine
+        function generateReport() {
+            fetch('/api/projects/report?id=' + currentProjectId).then(res => res.json()).then(data => {
+                if(!data.success) return;
+                const p = data.project;
+                let html = `<h1>Projekt-Report: ${p.title}</h1>`;
+                html += `<p style="font-size: 1.1rem; border: 1px solid #ccc; padding: 10px; border-radius: 6px;"><strong>Status:</strong> ${p.status.toUpperCase()} &nbsp;|&nbsp; <strong>Ziel:</strong> ${p.deadline || '-'} &nbsp;|&nbsp; <strong>Verantwortlich:</strong> ${p.assigned_username || '-'}</p>`;
+                html += `<p style="font-size: 1rem; color: #444;"><strong>Kurzbeschreibung:</strong> ${p.description || '-'}</p>`;
+                if (p.briefing) html += `<p style="font-size: 1rem; color: #444;"><strong>Steckbrief / Zielsetzung:</strong><br>${p.briefing.replace(/\n/g, '<br>')}</p>`;
+                html += `<h2 style="margin-top: 30px;">Aufgaben & Notizen</h2>`;
+                
+                data.tasks.forEach(t => {
+                    let status = t.is_completed ? '✅ Erledigt' : '⏳ Offen';
+                    let assign = t.assigned_username ? ` | Zuweisung: ${t.assigned_username}` : '';
+                    html += `<div class="print-task">`;
+                    html += `<h3>${t.title} <span style="font-size:0.9rem; font-weight:normal; color:#666;">(${status}${assign})</span></h3>`;
+                    
+                    let tComments = data.comments.filter(c => c.task_id === t.id);
+                    if(tComments.length > 0) {
+                        html += `<ul style="margin: 5px 0; padding-left: 20px;">`;
+                        tComments.forEach(c => { html += `<li class="print-comment"><strong>${c.username}</strong> (${c.created_at.substring(0,16)}): ${c.comment}</li>`; });
+                        html += `</ul>`;
+                    } else { html += `<p class="print-comment">Keine Notizen erfasst.</p>`; }
+                    html += `</div>`;
+                });
+
+                document.getElementById('printArea').innerHTML = html;
+                window.print();
+                setTimeout(() => { document.getElementById('printArea').innerHTML = ''; }, 2000);
+            });
+        }
 
         function loadTasks() {
             fetch('/api/tasks?project_id=' + currentProjectId).then(res => res.json()).then(data => {
@@ -576,7 +695,6 @@
 
         function loadAuditLogs() { fetch('/api/logs').then(res => res.json()).then(data => { if (data.success) { const tbody = document.getElementById('logTableBody'); tbody.innerHTML = ''; data.data.forEach(log => { tbody.innerHTML += `<tr><td style="color: var(--text-muted);">${log.timestamp}</td><td><strong>${log.username}</strong></td><td>${log.action}</td><td>${log.target || '-'}</td></tr>`; }); } }); }
         
-        // NEU: Asynchrone Funktion zur Vermeidung von SQLite "database is locked" Errors
         async function saveSpecificSettings(keys, values) { 
             for(let i=0; i<keys.length; i++) { 
                 let fd = new FormData(); 
@@ -628,7 +746,6 @@
 
         document.getElementById('licenseForm').addEventListener('submit', function(e) { e.preventDefault(); const formData = new FormData(); formData.append('config_key', 'LICENSE_KEY'); formData.append('config_value', document.getElementById('licenseInput').value); fetch('/api/settings', { method: 'POST', body: formData }).then(res => res.json()).then(data => { if (data.success) { document.getElementById('licenseInput').value = ''; loadSettings(); } }); });
         
-        // --- USERS ---
         function loadUsers() { fetch('/api/users').then(res => res.json()).then(data => { if (data.success) { const tbody = document.getElementById('usersTableBody'); tbody.innerHTML = ''; data.data.forEach(u => { const safeName = u.username.replace(/'/g, "\\'"); const safeEmail = (u.email || '').replace(/'/g, "\\'"); tbody.innerHTML += `<tr><td>${u.id}</td><td><strong>${u.username}</strong></td><td>${u.email || '-'}</td><td><span class="badge">${u.role}</span></td><td style="text-align: right;"><button class="btn-icon" onclick="openEditUserModal(${u.id}, '${safeName}', '${safeEmail}', '${u.role}')" title="Bearbeiten">✏️</button><button class="btn-icon del" onclick="deleteUser(${u.id})" title="Löschen">🗑️</button></td></tr>`; }); } }); }
         
         function openEditUserModal(id, username, email, role) { document.getElementById('editUserId').value = id; document.getElementById('editUserName').value = username; document.getElementById('editUserEmail').value = email; document.getElementById('editUserRole').value = role; document.getElementById('editUserPass').value = ''; document.getElementById('editUserModal').classList.remove('hidden'); }

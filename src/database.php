@@ -6,13 +6,15 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
     
-    // NEU: Concurrency Fixes für SQLite (verhindert "database is locked" Errors)
+    // Concurrency Fixes für SQLite (verhindert "database is locked" Errors)
     $pdo->setAttribute(PDO::ATTR_TIMEOUT, 5); 
     $pdo->exec("PRAGMA journal_mode = WAL;"); 
     $pdo->exec("PRAGMA busy_timeout = 5000;"); 
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, role TEXT DEFAULT 'user')");
     try { $pdo->exec("ALTER TABLE users ADD COLUMN email TEXT"); } catch (PDOException $e) {}
+    try { $pdo->exec("ALTER TABLE users ADD COLUMN reset_token TEXT"); } catch (PDOException $e) {} // NEU
+    try { $pdo->exec("ALTER TABLE users ADD COLUMN reset_expires DATETIME"); } catch (PDOException $e) {} // NEU
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS audit_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, username TEXT, action TEXT, target TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)");
     $pdo->exec("CREATE TABLE IF NOT EXISTS settings (config_key TEXT PRIMARY KEY, config_value TEXT NOT NULL)");
@@ -33,7 +35,6 @@ try {
     try { $pdo->exec("ALTER TABLE tasks ADD COLUMN completion_comment TEXT"); } catch (PDOException $e) {}
     try { $pdo->exec("ALTER TABLE tasks ADD COLUMN assigned_to INTEGER"); } catch (PDOException $e) {}
     
-    // NEU: Auto-Migration für Task Notizen
     $pdo->exec("CREATE TABLE IF NOT EXISTS task_comments (id INTEGER PRIMARY KEY AUTOINCREMENT, task_id INTEGER NOT NULL, username TEXT, comment TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
 
     $stmt = $pdo->query("SELECT COUNT(*) FROM users");
