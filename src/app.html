@@ -61,6 +61,14 @@
         .deadline-item { padding: 8px; margin-bottom: 5px; border-radius: 4px; font-size: 0.9rem; }
         .deadline-warn { background: rgba(245, 158, 11, 0.1); border-left: 3px solid var(--accent-orange); }
         .deadline-danger { background: rgba(239, 68, 68, 0.2); border-left: 3px solid var(--accent-red); color: var(--accent-red); }
+
+        /* Kalender CSS */
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 10px;}
+        .cal-day-header { text-align: center; font-size: 0.75rem; color: var(--text-muted); font-weight: bold; margin-bottom: 5px; }
+        .cal-day { background: var(--bg-color); min-height: 50px; border-radius: 4px; padding: 5px; font-size: 0.8rem; position: relative; border: 1px solid transparent; }
+        .cal-day.today { border-color: var(--accent-blue); }
+        .cal-day.empty { background: transparent; }
+        .cal-event-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-top: 2px; margin-right: 2px; }
     </style>
 </head>
 <body>
@@ -92,9 +100,28 @@
             <h2 style="margin-bottom: 0.5rem;">Mein Bereich</h2>
             <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0;">Übersicht deiner aktiven Projekt-Zuweisungen und offenen Aufgaben.</p>
             
-            <div class="deadline-box">
-                <h3 style="margin-top: 0; margin-bottom: 1rem; color: var(--accent-orange);">🚨 Anstehende Deadlines (nächste 7 Tage)</h3>
-                <div id="upcomingDeadlinesBox" style="display: flex; flex-direction: column; gap: 5px;"></div>
+            <div style="display: flex; gap: 2rem; margin-top: 1rem; flex-wrap: wrap;">
+                <!-- Deadlines -->
+                <div class="deadline-box" style="flex: 1; min-width: 300px; margin-top: 0;">
+                    <h3 style="margin-top: 0; margin-bottom: 1rem; color: var(--accent-orange);">🚨 Anstehende Deadlines (7 Tage)</h3>
+                    <div id="upcomingDeadlinesBox" style="display: flex; flex-direction: column; gap: 5px;"></div>
+                </div>
+                
+                <!-- Kalender -->
+                <div class="deadline-box" style="flex: 1; min-width: 300px; margin-top: 0; border-left-color: var(--accent-blue);">
+                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                        <button onclick="changeCalMonth(-1)" style="width:auto; padding:5px 10px; background:var(--surface-color); color:var(--text-main);">&lt;</button>
+                        <h3 id="calMonthYear" style="margin:0; color: var(--accent-blue);">Monat Jahr</h3>
+                        <button onclick="changeCalMonth(1)" style="width:auto; padding:5px 10px; background:var(--surface-color); color:var(--text-main);">&gt;</button>
+                    </div>
+                    <div class="cal-grid" id="calGrid"></div>
+                    <div style="margin-top: 15px; font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 10px; justify-content: center;">
+                        <span><span class="cal-event-dot" style="background: var(--accent-red);"></span> Prio 1</span>
+                        <span><span class="cal-event-dot" style="background: var(--accent-orange);"></span> Prio 2</span>
+                        <span><span class="cal-event-dot" style="background: var(--accent-green);"></span> Prio 3</span>
+                        <span><span class="cal-event-dot" style="background: var(--accent-blue); border-radius:2px;"></span> Projekt</span>
+                    </div>
+                </div>
             </div>
 
             <div style="display: flex; gap: 2rem; margin-top: 2rem; flex-wrap: wrap;">
@@ -103,7 +130,7 @@
                     <div id="myProjectsContainer" class="list-container" style="margin-top: 0;"></div>
                 </div>
                 <div style="flex: 1; min-width: 300px;">
-                    <h3>Meine Aufgaben</h3>
+                    <h3>Meine Aufgaben (Gruppiert)</h3>
                     <div id="myTasksContainer" style="background: var(--surface-hover); border-radius: 8px; padding: 1rem;"></div>
                 </div>
             </div>
@@ -116,7 +143,8 @@
                     <div style="flex: 1; min-width: 200px;"><input type="text" id="projTitle" placeholder="Projekt Titel" required></div>
                     <div style="flex: 2; min-width: 200px;"><input type="text" id="projDesc" placeholder="Kurze Beschreibung..."></div>
                     <div style="flex: 1; min-width: 150px;"><input type="date" id="projDeadline" title="Deadline (Optional)"></div>
-                    <textarea id="projBriefing" placeholder="Projekt-Steckbrief / Zielsetzung (Optional)" style="width: 100%; min-height: 60px; margin-top: 5px;"></textarea>
+                    <select id="projAssignee" class="user-select-dropdown" style="flex: 1; min-width: 120px; padding: 0.75rem;"><option value="">-- Zuweisung --</option></select>
+                    <textarea id="projBriefing" placeholder="Projekt-Steckbrief / Zielsetzung (Optional - Zeilenumbrüche erlaubt)" style="width: 100%; min-height: 60px; margin-top: 5px;"></textarea>
                     <button type="submit" style="width: auto; padding: 0.75rem 2rem; margin-top: 5px;">Projekt Anlegen</button>
                 </form>
             </div>
@@ -126,6 +154,7 @@
         <div id="tabLogs" class="log-container hidden"><h3 style="margin-top: 0;">System Audit Log</h3><table><thead><tr><th>Zeit</th><th>User</th><th>Aktion</th><th>Info</th></tr></thead><tbody id="logTableBody"></tbody></table></div>
         
         <div id="tabSettings" class="hidden">
+            <!-- Settings HTML remains unchanged -->
             <div class="log-container" style="border: 1px solid var(--accent-blue);">
                 <h3 style="margin-top: 0; color: var(--accent-blue);">Lizenz & Version</h3>
                 <div id="licenseBannerBox"></div>
@@ -186,7 +215,7 @@
             <div class="modal-header"><h2 id="modalProjectTitle" style="margin: 0;">Projekt Details</h2><button class="btn-close" onclick="closeTaskModal()">✖</button></div>
             <div class="modal-body">
                 <div style="display:flex; justify-content: space-between; margin-bottom: 1rem;"><span id="modalProjectStatus" class="badge">Aktiv</span></div>
-                <div id="modalBriefingBox" class="info-box hidden"><strong>Steckbrief:</strong> <span id="modalBriefingText"></span></div>
+                <div id="modalBriefingBox" class="info-box hidden"><strong>Steckbrief:</strong> <div id="modalBriefingText" style="margin-top: 5px; line-height: 1.4;"></div></div>
                 <div id="modalCloseComment" style="display:none; color: var(--text-muted); font-size: 0.9rem; font-style: italic; margin-bottom: 1.5rem; border-left: 3px solid var(--surface-hover); padding-left: 10px;"></div>
                 <div id="pmControls" class="pm-controls hidden"><button onclick="assignProjectToMe()" style="background-color: var(--surface-color); border: 1px solid var(--text-muted); color: var(--text-main); width: auto; font-size: 0.85rem;">🙋 Mir zuweisen</button><button onclick="extendProject()" style="background-color: var(--accent-blue); width: auto; font-size: 0.85rem;">⏳ Verlängern</button><button onclick="closeProject('closed')" style="background-color: var(--accent-green); width: auto; font-size: 0.85rem;">✔ Abschließen</button><button onclick="closeProject('canceled')" style="background-color: var(--accent-red); width: auto; font-size: 0.85rem;">✖ Abbrechen</button></div>
                 <form id="taskAddForm" style="display: flex; gap: 10px; margin-bottom: 2rem; flex-wrap: wrap; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
@@ -218,7 +247,7 @@
         </div>
     </div>
 
-    <!-- NEU: EDIT USER MODAL -->
+    <!-- EDIT USER MODAL -->
     <div id="editUserModal" class="modal-overlay hidden" style="z-index: 1050; background: rgba(0,0,0,0.85);">
         <div class="modal-content" style="max-width: 400px;">
             <div class="modal-header"><h3 style="margin:0;">Benutzer bearbeiten</h3><button class="btn-close" onclick="document.getElementById('editUserModal').classList.add('hidden')">✖</button></div>
@@ -235,6 +264,7 @@
 
     <script>
         let currentUserRole = 'user'; let currentUserId = null; let allUsers = [];
+        let currentCalDate = new Date(); let cachedProjects = []; let cachedTasks = [];
 
         document.addEventListener('DOMContentLoaded', checkSession);
 
@@ -251,8 +281,11 @@
         function fetchAllUsers() {
             fetch('/api/users').then(res => res.json()).then(data => {
                 if (data.success) {
-                    allUsers = data.data; let options = '<option value="">-- Frei --</option>';
-                    allUsers.forEach(u => options += `<option value="${u.id}">${u.username}</option>`);
+                    allUsers = data.data; let options = '<option value="">-- Zuweisung (Frei) --</option>';
+                    allUsers.forEach(u => {
+                        let sel = (currentUserId == u.id) ? 'selected' : '';
+                        options += `<option value="${u.id}" ${sel}>${u.username}</option>`;
+                    });
                     document.querySelectorAll('.user-select-dropdown').forEach(el => el.innerHTML = options);
                 }
             });
@@ -263,10 +296,13 @@
         function showDashboard(username) { document.getElementById('loginView').classList.add('hidden'); document.getElementById('dashboardView').classList.remove('hidden'); document.getElementById('userNameDisplay').innerText = username; toggleView('myarea'); }
         function toggleView(tab) { document.getElementById('tabMyarea').classList.add('hidden'); document.getElementById('tabProjects').classList.add('hidden'); document.getElementById('tabLogs').classList.add('hidden'); document.getElementById('tabSettings').classList.add('hidden'); document.getElementById('tabUsers').classList.add('hidden'); const target = document.getElementById('tab'+tab.charAt(0).toUpperCase() + tab.slice(1)); if (target) target.classList.remove('hidden'); if (tab === 'projects') loadProjects(); else if (tab === 'logs') loadAuditLogs(); else if (tab === 'settings') loadSettings(); else if (tab === 'users') loadUsers(); else if (tab === 'myarea') loadMyArea(); }
 
-        // --- MEIN BEREICH & DEADLINES ---
+        // --- MEIN BEREICH, TASKS & KALENDER ---
         function loadMyArea() {
             fetch('/api/myarea').then(res => res.json()).then(data => {
                 if(data.success) {
+                    cachedProjects = data.projects; cachedTasks = data.tasks;
+                    renderCalendar();
+
                     const pGrid = document.getElementById('myProjectsContainer'); const tGrid = document.getElementById('myTasksContainer');
                     pGrid.innerHTML = ''; tGrid.innerHTML = '';
                     
@@ -276,7 +312,8 @@
 
                     if(data.projects.length === 0) pGrid.innerHTML = '<span style="color:var(--text-muted);">Keine aktiven Projekte zugewiesen.</span>';
                     data.projects.forEach(p => {
-                        const safeTitle = p.title.replace(/'/g, "\\'"); const safeBriefing = (p.briefing || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        const safeBriefing = (p.briefing || '').replace(/\r\n|\r|\n/g, '<br>').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        const safeTitle = p.title.replace(/'/g, "\\'"); 
                         pGrid.innerHTML += `<div class="project-card" onclick="openTaskModal(${p.id}, '${safeTitle}', '${p.status}', '', '${safeBriefing}')"><h3 style="margin:0; color:var(--accent-blue);">${p.title}</h3><p style="font-size:0.85rem; color:var(--text-muted);">${p.description || 'Keine Info'}</p></div>`;
                         if(p.deadline) {
                             let d = new Date(p.deadline);
@@ -285,26 +322,75 @@
                         }
                     });
 
-                    if(data.tasks.length === 0) tGrid.innerHTML = '<span style="color:var(--text-muted);">Keine offenen Aufgaben. Gut gemacht!</span>';
-                    else tGrid.innerHTML = '<ul style="list-style:none; padding:0; margin:0;"></ul>';
-                    const ul = tGrid.querySelector('ul');
-                    
-                    data.tasks.forEach(t => {
-                        let prioHtml = t.priority == 1 ? `<span class="prio-badge" style="background: rgba(239, 68, 68, 0.2); color: var(--accent-red);">Hoch</span>` : (t.priority == 2 ? `<span class="prio-badge" style="background: rgba(245, 158, 11, 0.2); color: var(--accent-orange);">Mittel</span>` : `<span class="prio-badge" style="background: rgba(16, 185, 129, 0.2); color: var(--accent-green);">Niedrig</span>`);
-                        let dlHtml = t.deadline ? `<span style="color:var(--accent-orange); font-size:0.75rem;">⏳ ${t.deadline}</span>` : '';
-                        if(ul) ul.innerHTML += `<li style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); display:flex; gap:10px; align-items:flex-start;"><input type="checkbox" class="task-checkbox" onclick="event.preventDefault(); toggleTaskGlobal(${t.id}, ${t.project_id}, 0)"><div><div style="font-weight:bold;">${t.title} ${prioHtml}</div><div style="font-size:0.8rem; color:var(--text-muted);">Projekt: ${t.project_title} ${dlHtml}</div></div></li>`;
-                        if(t.deadline) {
-                            let d = new Date(t.deadline);
-                            if(d >= now && d <= nextWeek) upcomingHtml += `<div class="deadline-item deadline-warn"><strong>Task:</strong> ${t.title} im Projekt "${t.project_title}" (Fällig am: ${t.deadline})</div>`;
-                            else if (d < now) upcomingHtml += `<div class="deadline-item deadline-danger"><strong>⚠️ Überfällig:</strong> Task "${t.title}" (war fällig am: ${t.deadline})</div>`;
+                    // Tasks entschlackt gruppiert
+                    if(data.tasks.length === 0) {
+                        tGrid.innerHTML = '<span style="color:var(--text-muted);">Keine offenen Aufgaben. Gut gemacht!</span>';
+                    } else {
+                        let taskHtml = '<div style="max-height: 450px; overflow-y: auto; padding-right: 10px;">';
+                        let groupedTasks = {};
+                        data.tasks.forEach(t => {
+                            if(!groupedTasks[t.project_title]) groupedTasks[t.project_title] = [];
+                            groupedTasks[t.project_title].push(t);
+                            if(t.deadline) {
+                                let d = new Date(t.deadline);
+                                if(d >= now && d <= nextWeek) upcomingHtml += `<div class="deadline-item deadline-warn"><strong>Task:</strong> ${t.title} (Fällig am: ${t.deadline})</div>`;
+                                else if (d < now) upcomingHtml += `<div class="deadline-item deadline-danger"><strong>⚠️ Überfällig:</strong> Task "${t.title}" (war fällig am: ${t.deadline})</div>`;
+                            }
+                        });
+                        
+                        for(let pTitle in groupedTasks) {
+                            taskHtml += `<div style="font-weight:bold; margin: 15px 0 10px 0; color:var(--accent-blue); border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:5px;">📂 ${pTitle}</div>`;
+                            taskHtml += '<ul style="list-style:none; padding:0; margin:0 0 15px 0;">';
+                            groupedTasks[pTitle].forEach(t => {
+                                let prioHtml = t.priority == 1 ? `<span class="prio-badge" style="background: rgba(239, 68, 68, 0.2); color: var(--accent-red);">Hoch</span>` : (t.priority == 2 ? `<span class="prio-badge" style="background: rgba(245, 158, 11, 0.2); color: var(--accent-orange);">Mittel</span>` : `<span class="prio-badge" style="background: rgba(16, 185, 129, 0.2); color: var(--accent-green);">Niedrig</span>`);
+                                let dlHtml = t.deadline ? `<span style="color:var(--accent-orange); font-size:0.75rem;">⏳ ${t.deadline}</span>` : '';
+                                taskHtml += `<li style="padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.2); margin-bottom: 5px; display:flex; gap:10px; align-items:flex-start;"><input type="checkbox" class="task-checkbox" onclick="event.preventDefault(); toggleTaskGlobal(${t.id}, ${t.project_id}, 0)"><div><div style="font-weight:bold; margin-bottom: 4px;">${t.title} ${prioHtml}</div><div style="font-size:0.8rem; color:var(--text-muted);">${dlHtml}</div></div></li>`;
+                            });
+                            taskHtml += '</ul>';
                         }
-                    });
+                        taskHtml += '</div>';
+                        tGrid.innerHTML = taskHtml;
+                    }
 
                     if(upcomingHtml === '') upcomingHtml = '<span style="color:var(--text-muted);">Keine Deadlines in den nächsten 7 Tagen. Entspann dich! ☕</span>';
                     document.getElementById('upcomingDeadlinesBox').innerHTML = upcomingHtml;
                 }
             });
         }
+
+        function changeCalMonth(offset) { currentCalDate.setMonth(currentCalDate.getMonth() + offset); renderCalendar(); }
+        function renderCalendar() {
+            const year = currentCalDate.getFullYear(); const month = currentCalDate.getMonth(); const today = new Date();
+            const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate();
+            let firstDayIndex = firstDay === 0 ? 6 : firstDay - 1; // Start with Monday
+            const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+            
+            document.getElementById('calMonthYear').innerText = `${monthNames[month]} ${year}`;
+            const grid = document.getElementById('calGrid');
+            grid.innerHTML = '<div class="cal-day-header">Mo</div><div class="cal-day-header">Di</div><div class="cal-day-header">Mi</div><div class="cal-day-header">Do</div><div class="cal-day-header">Fr</div><div class="cal-day-header">Sa</div><div class="cal-day-header">So</div>';
+            
+            for (let i = 0; i < firstDayIndex; i++) grid.innerHTML += '<div class="cal-day empty"></div>';
+            
+            for (let d = 1; d <= daysInMonth; d++) {
+                let dateStr = `${year}-${String(month+1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                let isToday = (year === today.getFullYear() && month === today.getMonth() && d === today.getDate()) ? 'today' : '';
+                let eventsHtml = '';
+                
+                cachedTasks.forEach(t => {
+                    if (t.deadline === dateStr) {
+                        let color = t.priority == 1 ? 'var(--accent-red)' : (t.priority == 2 ? 'var(--accent-orange)' : 'var(--accent-green)');
+                        eventsHtml += `<span class="cal-event-dot" style="background: ${color};" title="Task: ${t.title.replace(/"/g, '&quot;')}"></span>`;
+                    }
+                });
+                cachedProjects.forEach(p => {
+                    if (p.deadline === dateStr) {
+                        eventsHtml += `<span class="cal-event-dot" style="background: var(--accent-blue); border-radius: 2px;" title="Projekt: ${p.title.replace(/"/g, '&quot;')}"></span>`;
+                    }
+                });
+                grid.innerHTML += `<div class="cal-day ${isToday}"><div style="font-weight:bold; margin-bottom:2px;">${d}</div><div>${eventsHtml}</div></div>`;
+            }
+        }
+
         function toggleTaskGlobal(taskId, projectId, state) { let comment = prompt("Kurzer Kommentar zur Erledigung:", ""); if (comment === null) return; const formData = new FormData(); formData.append('task_id', taskId); formData.append('project_id', projectId); formData.append('comment', comment); fetch('/api/tasks/toggle', { method: 'POST', body: formData }).then(res=>res.json()).then(data=>{ if(data.success) loadMyArea(); }); }
 
         // --- PROJEKTE ---
@@ -320,7 +406,8 @@
                             let timePercent = end > start ? Math.max(0, Math.min(100, ((now - start) / (end - start)) * 100)) : 0; const daysLeft = Math.ceil((end - now) / 86400000); const daysText = daysLeft >= 0 ? `${daysLeft} Tage verbleibend` : `${Math.abs(daysLeft)} Tage überfällig`; const timeColor = daysLeft < 0 ? 'var(--accent-red)' : (daysLeft <= 3 ? 'var(--accent-orange)' : 'var(--text-muted)');
                             timelineHtml = `<div style="margin-top: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px;"><div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 5px;"><span style="color: var(--text-muted);">Start: ${p.created_at.substring(0,10)}</span><span style="color: ${timeColor}; font-weight: bold;">⏳ ${daysText}</span><span style="color: var(--text-muted);">Ziel: ${p.deadline}</span></div><div class="progress-bg"><div class="progress-fill" style="width: ${timePercent}%; background-color: ${timeColor};"></div></div></div>`;
                         }
-                        const safeTitle = p.title.replace(/'/g, "\\'"); const safeBriefing = (p.briefing || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        const safeBriefing = (p.briefing || '').replace(/\r\n|\r|\n/g, '<br>').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        const safeTitle = p.title.replace(/'/g, "\\'"); 
                         const isClosed = p.status === 'closed'; const isCanceled = p.status === 'canceled'; let statusColor = 'var(--accent-green)'; let statusLabel = 'Aktiv';
                         if (isClosed) { statusColor = 'var(--text-muted)'; statusLabel = 'Abgeschlossen'; } if (isCanceled) { statusColor = 'var(--accent-red)'; statusLabel = 'Abgebrochen'; }
                         let deleteBtn = currentUserRole === 'admin' ? `<button class="btn-delete" onclick="event.stopPropagation(); deleteProject(${p.id}, '${safeTitle}')" title="Projekt löschen">✖</button>` : '';
@@ -332,14 +419,14 @@
             });
         }
 
-        document.getElementById('projectForm').addEventListener('submit', function(e) { e.preventDefault(); const formData = new FormData(); formData.append('title', document.getElementById('projTitle').value); formData.append('description', document.getElementById('projDesc').value); formData.append('briefing', document.getElementById('projBriefing').value); formData.append('deadline', document.getElementById('projDeadline').value); fetch('/api/projects', { method: 'POST', body: formData }).then(res => res.json()).then(data => { if (data.success) { document.getElementById('projectForm').reset(); loadProjects(); } else { alert(data.error); } }); });
+        document.getElementById('projectForm').addEventListener('submit', function(e) { e.preventDefault(); const formData = new FormData(); formData.append('title', document.getElementById('projTitle').value); formData.append('description', document.getElementById('projDesc').value); formData.append('briefing', document.getElementById('projBriefing').value); formData.append('deadline', document.getElementById('projDeadline').value); formData.append('assigned_to', document.getElementById('projAssignee').value); fetch('/api/projects', { method: 'POST', body: formData }).then(res => res.json()).then(data => { if (data.success) { document.getElementById('projectForm').reset(); loadProjects(); } else { alert(data.error); } }); });
         function deleteProject(id, title) { if (!confirm(`Das Projekt "${title}" unwiderruflich löschen?`)) return; const formData = new FormData(); formData.append('id', id); fetch('/api/projects/delete', { method: 'POST', body: formData }).then(res => res.json()).then(data => { if (data.success) loadProjects(); else alert(data.error); }); }
 
         function openTaskModal(id, title, status, closeComment, briefing) {
             currentProjectId = id; document.getElementById('modalProjectTitle').innerText = title; document.getElementById('taskModal').classList.remove('hidden');
             const badge = document.getElementById('modalProjectStatus'); const pmControls = document.getElementById('pmControls'); const taskForm = document.getElementById('taskAddForm'); const commentBox = document.getElementById('modalCloseComment');
             const briefingBox = document.getElementById('modalBriefingBox'); const briefingText = document.getElementById('modalBriefingText');
-            if (briefing && briefing.trim() !== '') { briefingText.innerText = briefing; briefingBox.classList.remove('hidden'); } else { briefingBox.classList.add('hidden'); }
+            if (briefing && briefing.trim() !== '') { briefingText.innerHTML = briefing; briefingBox.classList.remove('hidden'); } else { briefingBox.classList.add('hidden'); }
             if (status !== 'active') { badge.innerText = status === 'canceled' ? 'Abgebrochen (Schreibgeschützt)' : 'Abgeschlossen (Schreibgeschützt)'; badge.style.background = status === 'canceled' ? 'var(--accent-red)' : 'var(--text-muted)'; pmControls.classList.add('hidden'); taskForm.style.display = 'none'; if (closeComment) { commentBox.innerText = `"${closeComment}"`; commentBox.style.display = 'block'; } else { commentBox.style.display = 'none'; } } 
             else { badge.innerText = 'Aktiv'; badge.style.background = 'var(--accent-green)'; taskForm.style.display = 'flex'; commentBox.style.display = 'none'; if(currentUserRole === 'pm' || currentUserRole === 'admin') pmControls.classList.remove('hidden'); else pmControls.classList.add('hidden'); }
             loadTasks();

@@ -24,4 +24,5 @@ RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 RUN a2ensite default-ssl
 
 # Setze das Arbeitsverzeichnis
+COPY src/ /var/www/html/
 WORKDIR /var/www/html

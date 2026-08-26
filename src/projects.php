@@ -41,11 +41,17 @@ function handleCreateProject() {
         echo json_encode(['success' => false, 'error' => "Lizenzlimit der $tierName erreicht."]); exit;
     }
 
-    $title = trim($_POST['title'] ?? ''); $description = trim($_POST['description'] ?? ''); $briefing = trim($_POST['briefing'] ?? ''); $deadline = trim($_POST['deadline'] ?? ''); 
+    $title = trim($_POST['title'] ?? ''); 
+    $description = trim($_POST['description'] ?? ''); 
+    $briefing = trim($_POST['briefing'] ?? ''); 
+    $deadline = trim($_POST['deadline'] ?? ''); 
+    $assignedTo = trim($_POST['assigned_to'] ?? '');
+
     if ($title === '') { echo json_encode(['success' => false, 'error' => 'Titel darf nicht leer sein.']); exit; }
     if ($deadline === '') $deadline = null;
+    if ($assignedTo === '') $assignedTo = $_SESSION['user_id'];
 
-    $pdo->prepare("INSERT INTO projects (title, description, briefing, deadline) VALUES (?, ?, ?, ?)")->execute([$title, $description, $briefing, $deadline]);
+    $pdo->prepare("INSERT INTO projects (title, description, briefing, deadline, assigned_to) VALUES (?, ?, ?, ?, ?)")->execute([$title, $description, $briefing, $deadline, $assignedTo]);
     $pdo->prepare("INSERT INTO audit_logs (user_id, username, action, target) VALUES (?, ?, ?, ?)")->execute([$_SESSION['user_id'], $_SESSION['username'], 'Projekt erstellt', "Projekt: $title"]);
     echo json_encode(['success' => true]); exit;
 }
@@ -182,3 +188,4 @@ function handleGetMyArea() {
 
     echo json_encode(['success' => true, 'projects' => $myProjects, 'tasks' => $myTasks]); exit;
 }
+?>
