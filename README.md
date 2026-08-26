@@ -41,7 +41,7 @@ docker compose up -d
 
 ### 🔑 Erste Schritte
 
-Bevor der Container komplett funktioniert müssen dem ./data ordner noch die berechtigungen für wwww-data gegeben werden. Damit die Datenbank auch schreibfähig ist.
+Bevor der Container komplett funktioniert müssen dem ./data ordner noch die berechtigungen für www-data gegeben werden. Damit die Datenbank auch schreibfähig ist.
 ```
 chown -R 33 ./data
 chmod +755 ./data
