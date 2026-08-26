@@ -188,4 +188,33 @@ function handleGetMyArea() {
 
     echo json_encode(['success' => true, 'projects' => $myProjects, 'tasks' => $myTasks]); exit;
 }
+
+// NEU: Task Notizen laden
+function handleGetTaskComments() {
+    global $pdo; @session_start();
+    if (!isset($_SESSION['user_id'])) { http_response_code(401); exit; }
+    $taskId = $_GET['task_id'] ?? 0;
+    $stmt = $pdo->prepare("SELECT * FROM task_comments WHERE task_id = ? ORDER BY created_at ASC");
+    $stmt->execute([$taskId]);
+    echo json_encode(['success' => true, 'data' => $stmt->fetchAll()]); exit;
+}
+
+// NEU: Task Notiz hinzufügen
+function handleAddTaskComment() {
+    global $pdo; @session_start();
+    if (!isset($_SESSION['user_id'])) { http_response_code(401); exit; }
+    $taskId = $_POST['task_id'] ?? 0;
+    $comment = trim($_POST['comment'] ?? '');
+    
+    if ($comment !== '') {
+        $pdo->prepare("INSERT INTO task_comments (task_id, username, comment) VALUES (?, ?, ?)")->execute([$taskId, $_SESSION['username'], $comment]);
+        
+        $stmt = $pdo->prepare("SELECT project_id FROM tasks WHERE id = ?"); 
+        $stmt->execute([$taskId]);
+        if ($t = $stmt->fetch()) {
+            $pdo->prepare("UPDATE projects SET last_activity = CURRENT_TIMESTAMP WHERE id = ?")->execute([$t['project_id']]);
+        }
+    }
+    echo json_encode(['success' => true]); exit;
+}
 ?>

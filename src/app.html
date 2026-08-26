@@ -8,7 +8,10 @@
         :root { --bg-color: #12141c; --surface-color: #1e212b; --surface-hover: #2a2e3d; --text-main: #ffffff; --text-muted: #8b92a5; --accent-blue: #3b82f6; --accent-red: #ef4444; --accent-green: #10b981; --accent-orange: #f59e0b; }
         body { background-color: var(--bg-color); color: var(--text-main); font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
         .container { background-color: var(--surface-color); padding: 2.5rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 100%; max-width: 350px; margin-top: 10vh; }
-        .dashboard-container { max-width: 1000px; padding: 2rem; margin-top: 0; }
+        
+        /* NEU: Maximale Breite deutlich erhöht für das neue Grid */
+        .dashboard-container { max-width: 1400px; width: 98%; padding: 2rem; margin-top: 0; }
+        
         h1, h2, h3 { margin-top: 0; } h1 { font-size: 1.5rem; text-align: center; }
         .form-group { margin-bottom: 1.5rem; } label { display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem; }
         input, select, textarea { width: 100%; box-sizing: border-box; padding: 0.75rem; background-color: var(--bg-color); border: 1px solid var(--surface-hover); color: white; border-radius: 6px; outline: none; transition: border 0.2s; font-family: inherit; }
@@ -109,26 +112,28 @@
                 </div>
             </div>
             
+            <!-- NEUES LAYOUT: Links (Deadlines+Projekte oben, Kalender unten), Rechts (Aufgaben) -->
             <div style="display: flex; gap: 2rem; align-items: stretch; flex-wrap: wrap;">
                 
-                <!-- LINKE SPALTE (Deadlines, Projekte, Kalender) -->
-                <div style="flex: 1.5; min-width: 400px; display: flex; flex-direction: column; gap: 1.5rem;">
-                    
+                <!-- LINKE SPALTE -->
+                <div style="flex: 1.2; min-width: 450px; display: flex; flex-direction: column; gap: 1.5rem;">
                     <!-- OBERE REIHE: Deadlines & Projekte -->
                     <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: stretch;">
-                        <div class="deadline-box" style="flex: 1; min-width: 200px;">
+                        <div class="deadline-box" style="flex: 1; min-width: 200px; margin: 0;">
                             <h3 style="margin-top: 0; margin-bottom: 1rem; color: var(--accent-orange);">🚨 Deadlines (7 Tage)</h3>
                             <div id="upcomingDeadlinesBox" style="display: flex; flex-direction: column; gap: 5px;"></div>
                         </div>
                         
                         <div style="flex: 1; min-width: 200px; display: flex; flex-direction: column;">
-                            <h3 style="margin-top: 0; margin-bottom: 1rem;">Meine Projekte</h3>
-                            <div id="myProjectsContainer" style="margin-top: 0; flex-grow: 1; display: flex; flex-direction: column; gap: 10px; background: var(--surface-hover); padding: 1rem; border-radius: 8px;"></div>
+                            <div style="background: var(--surface-hover); border-radius: 8px; padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column;">
+                                <h3 style="margin-top: 0; margin-bottom: 1rem;">Meine Projekte</h3>
+                                <div id="myProjectsContainer" style="margin-top: 0; flex-grow: 1; display: flex; flex-direction: column; gap: 10px;"></div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- UNTERE REIHE: Kalender -->
-                    <div class="deadline-box" style="border-left-color: var(--accent-blue);">
+                    <!-- UNTERE REIHE: Kalender (über volle Breite der linken Spalte) -->
+                    <div class="deadline-box" style="margin: 0; border-left-color: var(--accent-blue);">
                          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
                             <button onclick="changeCalMonth(-1)" style="width:auto; padding:5px 10px; background:var(--surface-color); color:var(--text-main);">&lt;</button>
                             <h3 id="calMonthYear" style="margin:0; color: var(--accent-blue);">Monat Jahr</h3>
@@ -144,10 +149,12 @@
                     </div>
                 </div>
 
-                <!-- RECHTE SPALTE (Aufgaben) -->
+                <!-- RECHTE SPALTE -->
                 <div style="flex: 1; min-width: 350px; display: flex; flex-direction: column;">
-                    <h3 style="margin-top: 0; margin-bottom: 1rem;">Meine Aufgaben</h3>
-                    <div id="myTasksContainer" style="background: var(--surface-hover); border-radius: 8px; padding: 1rem; flex-grow: 1; max-height: calc(100vh - 220px); overflow-y: auto;"></div>
+                    <div style="background: var(--surface-hover); border-radius: 8px; padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; max-height: calc(100vh - 180px);">
+                        <h3 style="margin-top: 0; margin-bottom: 1rem;">Meine Aufgaben</h3>
+                        <div id="myTasksContainer" style="overflow-y: auto; padding-right: 5px;"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -251,6 +258,19 @@
         <div class="modal-content" style="max-width: 450px;">
             <div class="modal-header"><h3 id="dayViewTitle" style="margin:0;">Aufgaben</h3><button class="btn-close" onclick="document.getElementById('dayViewModal').classList.add('hidden')">✖</button></div>
             <div id="dayViewContent"></div>
+        </div>
+    </div>
+
+    <!-- COMMENTS MODAL (Neu: Task Notizen) -->
+    <div id="commentsModal" class="modal-overlay hidden" style="z-index: 1070; background: rgba(0,0,0,0.85);">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header"><h3 id="commentsTaskTitle" style="margin:0; font-size:1.1rem; color:var(--accent-blue);">Notizen</h3><button class="btn-close" onclick="document.getElementById('commentsModal').classList.add('hidden')">✖</button></div>
+            <div id="commentsList" style="max-height: 300px; overflow-y: auto; margin-bottom: 1rem; display:flex; flex-direction:column; gap:10px;"></div>
+            <form id="commentAddForm" style="display:flex; gap:10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
+                <input type="hidden" id="commentTaskId">
+                <input type="text" id="newCommentText" placeholder="Kurzes Update oder Notiz..." required style="flex:1;">
+                <button type="submit" style="width:auto; padding: 0.5rem 1rem;">Senden</button>
+            </form>
         </div>
     </div>
 
@@ -376,8 +396,18 @@
                                                     <ul style="list-style:none; padding:0 8px 8px 8px; margin:0;">`;
                                     
                                     groupedTasks[pTitle][prio].forEach(t => {
-                                        let dlHtml = t.deadline ? `<span style="color:var(--accent-orange); font-size:0.75rem;">⏳ ${t.deadline}</span>` : '';
-                                        taskHtml += `<li style="padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.2); margin-bottom: 5px; display:flex; gap:10px; align-items:flex-start;"><input type="checkbox" class="task-checkbox" onclick="event.preventDefault(); toggleTaskGlobal(${t.id}, ${t.project_id}, 0)"><div><div style="font-weight:bold; margin-bottom: 4px; font-size: 0.9rem;">${t.title}</div><div style="font-size:0.8rem; color:var(--text-muted);">${dlHtml}</div></div></li>`;
+                                        let dlHtml = t.deadline ? `<span style="color:var(--accent-orange);">⏳ ${t.deadline}</span>` : '';
+                                        const safeTitle = t.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                                        taskHtml += `<li style="padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.2); margin-bottom: 5px; display:flex; gap:10px; align-items:flex-start;">
+                                            <input type="checkbox" class="task-checkbox" onclick="event.preventDefault(); toggleTaskGlobal(${t.id}, ${t.project_id}, 0)">
+                                            <div>
+                                                <div style="font-weight:bold; margin-bottom: 4px; font-size: 0.9rem;">${t.title}</div>
+                                                <div style="font-size:0.8rem; color:var(--text-muted); display:flex; gap:15px; align-items:center;">
+                                                    ${dlHtml}
+                                                    <span onclick="openComments(${t.id}, '${safeTitle}')" style="cursor:pointer; color:var(--accent-blue); display:flex; align-items:center; gap:4px;" title="Task Notizen öffnen">💬 Notizen</span>
+                                                </div>
+                                            </div>
+                                        </li>`;
                                     });
                                     taskHtml += `</ul></details>`;
                                 }
@@ -426,7 +456,6 @@
             }
         }
 
-        // Kalender Klick Logik
         function openDayView(dateStr) {
             let dayTasks = cachedTasks.filter(t => t.deadline === dateStr);
             document.getElementById('dayViewTitle').innerText = `Aufgaben: ${dateStr}`;
@@ -445,6 +474,36 @@
             document.getElementById('dayViewContent').innerHTML = html;
             document.getElementById('dayViewModal').classList.remove('hidden');
         }
+        
+        // --- COMMENTS (Notizen) ---
+        function openComments(taskId, title) {
+            document.getElementById('commentTaskId').value = taskId;
+            document.getElementById('commentsTaskTitle').innerText = 'Notizen: ' + title;
+            document.getElementById('commentsModal').classList.remove('hidden');
+            loadComments(taskId);
+        }
+        function loadComments(taskId) {
+            fetch('/api/tasks/comments?task_id=' + taskId).then(res=>res.json()).then(data=>{
+                let html = '';
+                if(data.success) {
+                    if(data.data.length === 0) html = '<div style="color:var(--text-muted); font-size:0.9rem; text-align:center; margin-top:20px;">Noch keine Notizen vorhanden.</div>';
+                    data.data.forEach(c => {
+                        html += `<div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; font-size:0.85rem;"><div style="display:flex; justify-content:space-between; margin-bottom:5px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 3px;"><strong style="color:var(--accent-blue);">🙋 ${c.username}</strong><span style="color:var(--text-muted); font-size:0.75rem;">${c.created_at}</span></div><div style="line-height:1.4;">${c.comment}</div></div>`;
+                    });
+                }
+                const cl = document.getElementById('commentsList');
+                cl.innerHTML = html; cl.scrollTop = cl.scrollHeight;
+            });
+        }
+        document.getElementById('commentAddForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            let taskId = document.getElementById('commentTaskId').value;
+            let comment = document.getElementById('newCommentText').value;
+            let fd = new FormData(); fd.append('task_id', taskId); fd.append('comment', comment);
+            fetch('/api/tasks/comment', {method:'POST', body:fd}).then(res=>res.json()).then(data=>{
+                if(data.success) { document.getElementById('newCommentText').value = ''; loadComments(taskId); }
+            });
+        });
 
         function toggleTaskGlobal(taskId, projectId, state) { let comment = prompt("Kurzer Kommentar zur Erledigung:", ""); if (comment === null) return; const formData = new FormData(); formData.append('task_id', taskId); formData.append('project_id', projectId); formData.append('comment', comment); fetch('/api/tasks/toggle', { method: 'POST', body: formData }).then(res=>res.json()).then(data=>{ if(data.success) loadMyArea(); }); }
 
@@ -507,7 +566,7 @@
                             if (isDone && t.completion_comment) completedText += `<div style="color: var(--text-muted); margin-top:4px; font-style:italic;">💬 "${t.completion_comment}"</div>`;
                             let assignHtml = t.assigned_username ? `<span style="color: var(--accent-blue);">🙋 Zuweisung: ${t.assigned_username}</span>` : '';
                             const safeTitle = t.title.replace(/'/g, "\\'").replace(/"/g, '&quot;'); const safePhase = t.phase.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                            let actionsHtml = !isClosed ? `<div class="task-actions"><button class="btn-icon" onclick="openEditTodoModal(${t.id}, '${safeTitle}', '${safePhase}', ${t.priority}, '${t.deadline || ''}', '${t.assigned_to || ''}')" title="Bearbeiten">✏️</button><button class="btn-icon del" onclick="deleteTodo(${t.id}, '${safeTitle}')" title="Löschen">🗑️</button></div>` : '';
+                            let actionsHtml = !isClosed ? `<div class="task-actions"><button class="btn-icon" onclick="openComments(${t.id}, '${safeTitle}')" title="Notizen">💬</button><button class="btn-icon" onclick="openEditTodoModal(${t.id}, '${safeTitle}', '${safePhase}', ${t.priority}, '${t.deadline || ''}', '${t.assigned_to || ''}')" title="Bearbeiten">✏️</button><button class="btn-icon del" onclick="deleteTodo(${t.id}, '${safeTitle}')" title="Löschen">🗑️</button></div>` : '';
                             list.innerHTML += `<div class="task-item ${isDone ? 'done' : ''}"><input type="checkbox" class="task-checkbox" ${isDone ? 'checked' : ''} ${disabledAttr} onclick="event.preventDefault(); toggleTask(${t.id}, ${t.is_completed})"><div class="task-details"><div style="display: flex; align-items: center; gap: 10px;"><span class="task-text" style="font-size: 1.05rem;">${t.title}</span>${prioHtml}</div><div class="task-meta">${tTimelineHtml} ${assignHtml}</div><div>${completedText}</div></div>${actionsHtml}</div>`;
                         });
                     }

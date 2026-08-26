@@ -30,6 +30,9 @@ try {
     try { $pdo->exec("ALTER TABLE tasks ADD COLUMN phase TEXT DEFAULT 'Standard'"); } catch (PDOException $e) {}
     try { $pdo->exec("ALTER TABLE tasks ADD COLUMN completion_comment TEXT"); } catch (PDOException $e) {}
     try { $pdo->exec("ALTER TABLE tasks ADD COLUMN assigned_to INTEGER"); } catch (PDOException $e) {}
+    
+    // NEU: Auto-Migration für Task Notizen
+    $pdo->exec("CREATE TABLE IF NOT EXISTS task_comments (id INTEGER PRIMARY KEY AUTOINCREMENT, task_id INTEGER NOT NULL, username TEXT, comment TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
 
     $stmt = $pdo->query("SELECT COUNT(*) FROM users");
     if ($stmt->fetchColumn() == 0) {

@@ -28,6 +28,8 @@ if ($path === '/' || $path === '') { header('Content-Type: text/html'); readfile
 } elseif ($path === '/api/tasks/toggle' && $method === 'POST') { handleToggleTask();
 } elseif ($path === '/api/tasks/edit' && $method === 'POST') { handleEditTask();
 } elseif ($path === '/api/tasks/delete' && $method === 'POST') { handleDeleteTask();
+} elseif ($path === '/api/tasks/comments' && $method === 'GET') { handleGetTaskComments(); // NEU
+} elseif ($path === '/api/tasks/comment' && $method === 'POST') { handleAddTaskComment(); // NEU
 } elseif ($path === '/api/myarea' && $method === 'GET') { handleGetMyArea();
 } elseif ($path === '/api/me' && $method === 'GET') {
     @session_start(); if (isset($_SESSION['user_id'])) { echo json_encode(['success' => true, 'username' => $_SESSION['username'], 'role' => $_SESSION['role'], 'user_id' => $_SESSION['user_id']]); } else { http_response_code(401); echo json_encode(['success' => false, 'error' => 'Not authenticated']); } exit;
