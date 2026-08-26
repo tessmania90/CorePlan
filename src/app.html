@@ -57,7 +57,7 @@
         .license-active { background: rgba(16, 185, 129, 0.1); border-left: 4px solid var(--accent-green); }
         .license-expired { background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--accent-red); }
         .info-box { background: rgba(59, 130, 246, 0.1); border-left: 4px solid var(--accent-blue); padding: 10px; border-radius: 0 4px 4px 0; margin-bottom: 1.5rem; font-size: 0.9rem;}
-        .deadline-box { background: var(--surface-hover); padding: 1.5rem; border-radius: 8px; margin-top: 1.5rem; border-left: 4px solid var(--accent-orange); }
+        .deadline-box { background: var(--surface-hover); padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--accent-orange); }
         .deadline-item { padding: 8px; margin-bottom: 5px; border-radius: 4px; font-size: 0.9rem; }
         .deadline-warn { background: rgba(245, 158, 11, 0.1); border-left: 3px solid var(--accent-orange); }
         .deadline-danger { background: rgba(239, 68, 68, 0.2); border-left: 3px solid var(--accent-red); color: var(--accent-red); }
@@ -65,10 +65,15 @@
         /* Kalender CSS */
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 10px;}
         .cal-day-header { text-align: center; font-size: 0.75rem; color: var(--text-muted); font-weight: bold; margin-bottom: 5px; }
-        .cal-day { background: var(--bg-color); min-height: 50px; border-radius: 4px; padding: 5px; font-size: 0.8rem; position: relative; border: 1px solid transparent; }
+        .cal-day { background: var(--bg-color); min-height: 50px; border-radius: 4px; padding: 5px; font-size: 0.8rem; position: relative; border: 1px solid transparent; cursor: pointer; transition: background 0.2s; }
+        .cal-day:hover:not(.empty) { background: rgba(255,255,255,0.05); }
         .cal-day.today { border-color: var(--accent-blue); }
-        .cal-day.empty { background: transparent; }
+        .cal-day.empty { background: transparent; cursor: default; }
         .cal-event-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-top: 2px; margin-right: 2px; }
+        
+        /* Accordion CSS für native Details */
+        details > summary { list-style: none; user-select: none; }
+        details > summary::-webkit-details-marker { display: none; }
     </style>
 </head>
 <body>
@@ -97,41 +102,52 @@
         </div>
         
         <div id="tabMyarea">
-            <h2 style="margin-bottom: 0.5rem;">Mein Bereich</h2>
-            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0;">Übersicht deiner aktiven Projekt-Zuweisungen und offenen Aufgaben.</p>
-            
-            <div style="display: flex; gap: 2rem; margin-top: 1rem; flex-wrap: wrap;">
-                <!-- Deadlines -->
-                <div class="deadline-box" style="flex: 1; min-width: 300px; margin-top: 0;">
-                    <h3 style="margin-top: 0; margin-bottom: 1rem; color: var(--accent-orange);">🚨 Anstehende Deadlines (7 Tage)</h3>
-                    <div id="upcomingDeadlinesBox" style="display: flex; flex-direction: column; gap: 5px;"></div>
-                </div>
-                
-                <!-- Kalender -->
-                <div class="deadline-box" style="flex: 1; min-width: 300px; margin-top: 0; border-left-color: var(--accent-blue);">
-                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
-                        <button onclick="changeCalMonth(-1)" style="width:auto; padding:5px 10px; background:var(--surface-color); color:var(--text-main);">&lt;</button>
-                        <h3 id="calMonthYear" style="margin:0; color: var(--accent-blue);">Monat Jahr</h3>
-                        <button onclick="changeCalMonth(1)" style="width:auto; padding:5px 10px; background:var(--surface-color); color:var(--text-main);">&gt;</button>
-                    </div>
-                    <div class="cal-grid" id="calGrid"></div>
-                    <div style="margin-top: 15px; font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 10px; justify-content: center;">
-                        <span><span class="cal-event-dot" style="background: var(--accent-red);"></span> Prio 1</span>
-                        <span><span class="cal-event-dot" style="background: var(--accent-orange);"></span> Prio 2</span>
-                        <span><span class="cal-event-dot" style="background: var(--accent-green);"></span> Prio 3</span>
-                        <span><span class="cal-event-dot" style="background: var(--accent-blue); border-radius:2px;"></span> Projekt</span>
-                    </div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1rem;">
+                <div>
+                    <h2 style="margin-bottom: 0.2rem;">Mein Bereich</h2>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0;">Dein Command Center: Deadlines, Projekte und Tasks im Überblick.</p>
                 </div>
             </div>
+            
+            <div style="display: flex; gap: 2rem; align-items: stretch; flex-wrap: wrap;">
+                
+                <!-- LINKE SPALTE (Deadlines, Projekte, Kalender) -->
+                <div style="flex: 1.5; min-width: 400px; display: flex; flex-direction: column; gap: 1.5rem;">
+                    
+                    <!-- OBERE REIHE: Deadlines & Projekte -->
+                    <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: stretch;">
+                        <div class="deadline-box" style="flex: 1; min-width: 200px;">
+                            <h3 style="margin-top: 0; margin-bottom: 1rem; color: var(--accent-orange);">🚨 Deadlines (7 Tage)</h3>
+                            <div id="upcomingDeadlinesBox" style="display: flex; flex-direction: column; gap: 5px;"></div>
+                        </div>
+                        
+                        <div style="flex: 1; min-width: 200px; display: flex; flex-direction: column;">
+                            <h3 style="margin-top: 0; margin-bottom: 1rem;">Meine Projekte</h3>
+                            <div id="myProjectsContainer" style="margin-top: 0; flex-grow: 1; display: flex; flex-direction: column; gap: 10px; background: var(--surface-hover); padding: 1rem; border-radius: 8px;"></div>
+                        </div>
+                    </div>
 
-            <div style="display: flex; gap: 2rem; margin-top: 2rem; flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 300px;">
-                    <h3>Meine Projekte</h3>
-                    <div id="myProjectsContainer" class="list-container" style="margin-top: 0;"></div>
+                    <!-- UNTERE REIHE: Kalender -->
+                    <div class="deadline-box" style="border-left-color: var(--accent-blue);">
+                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                            <button onclick="changeCalMonth(-1)" style="width:auto; padding:5px 10px; background:var(--surface-color); color:var(--text-main);">&lt;</button>
+                            <h3 id="calMonthYear" style="margin:0; color: var(--accent-blue);">Monat Jahr</h3>
+                            <button onclick="changeCalMonth(1)" style="width:auto; padding:5px 10px; background:var(--surface-color); color:var(--text-main);">&gt;</button>
+                        </div>
+                        <div class="cal-grid" id="calGrid"></div>
+                        <div style="margin-top: 15px; font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 10px; justify-content: center;">
+                            <span><span class="cal-event-dot" style="background: var(--accent-red);"></span> Prio 1</span>
+                            <span><span class="cal-event-dot" style="background: var(--accent-orange);"></span> Prio 2</span>
+                            <span><span class="cal-event-dot" style="background: var(--accent-green);"></span> Prio 3</span>
+                            <span><span class="cal-event-dot" style="background: var(--accent-blue); border-radius:2px;"></span> Projekt</span>
+                        </div>
+                    </div>
                 </div>
-                <div style="flex: 1; min-width: 300px;">
-                    <h3>Meine Aufgaben (Gruppiert)</h3>
-                    <div id="myTasksContainer" style="background: var(--surface-hover); border-radius: 8px; padding: 1rem;"></div>
+
+                <!-- RECHTE SPALTE (Aufgaben) -->
+                <div style="flex: 1; min-width: 350px; display: flex; flex-direction: column;">
+                    <h3 style="margin-top: 0; margin-bottom: 1rem;">Meine Aufgaben</h3>
+                    <div id="myTasksContainer" style="background: var(--surface-hover); border-radius: 8px; padding: 1rem; flex-grow: 1; max-height: calc(100vh - 220px); overflow-y: auto;"></div>
                 </div>
             </div>
         </div>
@@ -154,7 +170,6 @@
         <div id="tabLogs" class="log-container hidden"><h3 style="margin-top: 0;">System Audit Log</h3><table><thead><tr><th>Zeit</th><th>User</th><th>Aktion</th><th>Info</th></tr></thead><tbody id="logTableBody"></tbody></table></div>
         
         <div id="tabSettings" class="hidden">
-            <!-- Settings HTML remains unchanged -->
             <div class="log-container" style="border: 1px solid var(--accent-blue);">
                 <h3 style="margin-top: 0; color: var(--accent-blue);">Lizenz & Version</h3>
                 <div id="licenseBannerBox"></div>
@@ -228,6 +243,14 @@
                 </form>
                 <div id="taskList"></div>
             </div>
+        </div>
+    </div>
+
+    <!-- DAY VIEW MODAL (Kalender Klick) -->
+    <div id="dayViewModal" class="modal-overlay hidden" style="z-index: 1060; background: rgba(0,0,0,0.85);">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header"><h3 id="dayViewTitle" style="margin:0;">Aufgaben</h3><button class="btn-close" onclick="document.getElementById('dayViewModal').classList.add('hidden')">✖</button></div>
+            <div id="dayViewContent"></div>
         </div>
     </div>
 
@@ -314,7 +337,7 @@
                     data.projects.forEach(p => {
                         const safeBriefing = (p.briefing || '').replace(/\r\n|\r|\n/g, '<br>').replace(/'/g, "\\'").replace(/"/g, '&quot;');
                         const safeTitle = p.title.replace(/'/g, "\\'"); 
-                        pGrid.innerHTML += `<div class="project-card" onclick="openTaskModal(${p.id}, '${safeTitle}', '${p.status}', '', '${safeBriefing}')"><h3 style="margin:0; color:var(--accent-blue);">${p.title}</h3><p style="font-size:0.85rem; color:var(--text-muted);">${p.description || 'Keine Info'}</p></div>`;
+                        pGrid.innerHTML += `<div class="project-card" style="padding: 1rem; margin-bottom: 0;" onclick="openTaskModal(${p.id}, '${safeTitle}', '${p.status}', '', '${safeBriefing}')"><h3 style="margin:0; font-size:1rem; color:var(--accent-blue);">${p.title}</h3><p style="font-size:0.8rem; color:var(--text-muted); margin: 5px 0 0 0;">${p.description || 'Keine Info'}</p></div>`;
                         if(p.deadline) {
                             let d = new Date(p.deadline);
                             if(d >= now && d <= nextWeek) upcomingHtml += `<div class="deadline-item deadline-warn"><strong>Projekt:</strong> ${p.title} (Fällig am: ${p.deadline})</div>`;
@@ -322,15 +345,17 @@
                         }
                     });
 
-                    // Tasks entschlackt gruppiert
+                    // Tasks entschlackt gruppiert mit Prio-Accordions
                     if(data.tasks.length === 0) {
                         tGrid.innerHTML = '<span style="color:var(--text-muted);">Keine offenen Aufgaben. Gut gemacht!</span>';
                     } else {
-                        let taskHtml = '<div style="max-height: 450px; overflow-y: auto; padding-right: 10px;">';
+                        let taskHtml = '<div>';
                         let groupedTasks = {};
+                        
                         data.tasks.forEach(t => {
-                            if(!groupedTasks[t.project_title]) groupedTasks[t.project_title] = [];
-                            groupedTasks[t.project_title].push(t);
+                            if(!groupedTasks[t.project_title]) groupedTasks[t.project_title] = {1:[], 2:[], 3:[]};
+                            groupedTasks[t.project_title][t.priority].push(t);
+                            
                             if(t.deadline) {
                                 let d = new Date(t.deadline);
                                 if(d >= now && d <= nextWeek) upcomingHtml += `<div class="deadline-item deadline-warn"><strong>Task:</strong> ${t.title} (Fällig am: ${t.deadline})</div>`;
@@ -340,13 +365,23 @@
                         
                         for(let pTitle in groupedTasks) {
                             taskHtml += `<div style="font-weight:bold; margin: 15px 0 10px 0; color:var(--accent-blue); border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:5px;">📂 ${pTitle}</div>`;
-                            taskHtml += '<ul style="list-style:none; padding:0; margin:0 0 15px 0;">';
-                            groupedTasks[pTitle].forEach(t => {
-                                let prioHtml = t.priority == 1 ? `<span class="prio-badge" style="background: rgba(239, 68, 68, 0.2); color: var(--accent-red);">Hoch</span>` : (t.priority == 2 ? `<span class="prio-badge" style="background: rgba(245, 158, 11, 0.2); color: var(--accent-orange);">Mittel</span>` : `<span class="prio-badge" style="background: rgba(16, 185, 129, 0.2); color: var(--accent-green);">Niedrig</span>`);
-                                let dlHtml = t.deadline ? `<span style="color:var(--accent-orange); font-size:0.75rem;">⏳ ${t.deadline}</span>` : '';
-                                taskHtml += `<li style="padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.2); margin-bottom: 5px; display:flex; gap:10px; align-items:flex-start;"><input type="checkbox" class="task-checkbox" onclick="event.preventDefault(); toggleTaskGlobal(${t.id}, ${t.project_id}, 0)"><div><div style="font-weight:bold; margin-bottom: 4px;">${t.title} ${prioHtml}</div><div style="font-size:0.8rem; color:var(--text-muted);">${dlHtml}</div></div></li>`;
+                            
+                            [1, 2, 3].forEach(prio => {
+                                if(groupedTasks[pTitle][prio].length > 0) {
+                                    let prioName = prio == 1 ? '🔥 Hoch' : (prio == 2 ? '⚡ Mittel' : '🧊 Niedrig');
+                                    let color = prio == 1 ? 'var(--accent-red)' : (prio == 2 ? 'var(--accent-orange)' : 'var(--accent-green)');
+                                    
+                                    taskHtml += `<details open style="margin-bottom: 5px; background: rgba(0,0,0,0.1); border-radius: 6px;">
+                                                    <summary style="cursor:pointer; color: ${color}; font-weight:bold; font-size:0.85rem; padding: 8px;">${prioName} (${groupedTasks[pTitle][prio].length})</summary>
+                                                    <ul style="list-style:none; padding:0 8px 8px 8px; margin:0;">`;
+                                    
+                                    groupedTasks[pTitle][prio].forEach(t => {
+                                        let dlHtml = t.deadline ? `<span style="color:var(--accent-orange); font-size:0.75rem;">⏳ ${t.deadline}</span>` : '';
+                                        taskHtml += `<li style="padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.2); margin-bottom: 5px; display:flex; gap:10px; align-items:flex-start;"><input type="checkbox" class="task-checkbox" onclick="event.preventDefault(); toggleTaskGlobal(${t.id}, ${t.project_id}, 0)"><div><div style="font-weight:bold; margin-bottom: 4px; font-size: 0.9rem;">${t.title}</div><div style="font-size:0.8rem; color:var(--text-muted);">${dlHtml}</div></div></li>`;
+                                    });
+                                    taskHtml += `</ul></details>`;
+                                }
                             });
-                            taskHtml += '</ul>';
                         }
                         taskHtml += '</div>';
                         tGrid.innerHTML = taskHtml;
@@ -387,8 +422,28 @@
                         eventsHtml += `<span class="cal-event-dot" style="background: var(--accent-blue); border-radius: 2px;" title="Projekt: ${p.title.replace(/"/g, '&quot;')}"></span>`;
                     }
                 });
-                grid.innerHTML += `<div class="cal-day ${isToday}"><div style="font-weight:bold; margin-bottom:2px;">${d}</div><div>${eventsHtml}</div></div>`;
+                grid.innerHTML += `<div class="cal-day ${isToday}" onclick="openDayView('${dateStr}')"><div style="font-weight:bold; margin-bottom:2px;">${d}</div><div>${eventsHtml}</div></div>`;
             }
+        }
+
+        // Kalender Klick Logik
+        function openDayView(dateStr) {
+            let dayTasks = cachedTasks.filter(t => t.deadline === dateStr);
+            document.getElementById('dayViewTitle').innerText = `Aufgaben: ${dateStr}`;
+            
+            let html = '';
+            if(dayTasks.length === 0) {
+                html = `<p style="color:var(--text-muted);">Keine To-Dos für diesen Tag.</p>`;
+            } else {
+                html += `<ul style="list-style:none; padding:0; margin:0;">`;
+                dayTasks.forEach(t => {
+                    let prioHtml = t.priority == 1 ? `<span class="prio-badge" style="background: rgba(239, 68, 68, 0.2); color: var(--accent-red);">Hoch</span>` : (t.priority == 2 ? `<span class="prio-badge" style="background: rgba(245, 158, 11, 0.2); color: var(--accent-orange);">Mittel</span>` : `<span class="prio-badge" style="background: rgba(16, 185, 129, 0.2); color: var(--accent-green);">Niedrig</span>`);
+                    html += `<li style="padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.2); margin-bottom: 5px; display:flex; gap:10px; align-items:flex-start;"><input type="checkbox" class="task-checkbox" onclick="event.preventDefault(); toggleTaskGlobal(${t.id}, ${t.project_id}, 0); document.getElementById('dayViewModal').classList.add('hidden');"><div><div style="font-weight:bold; margin-bottom: 4px;">${t.title} ${prioHtml}</div><div style="font-size:0.8rem; color:var(--text-muted);">📂 ${t.project_title}</div></div></li>`;
+                });
+                html += `</ul>`;
+            }
+            document.getElementById('dayViewContent').innerHTML = html;
+            document.getElementById('dayViewModal').classList.remove('hidden');
         }
 
         function toggleTaskGlobal(taskId, projectId, state) { let comment = prompt("Kurzer Kommentar zur Erledigung:", ""); if (comment === null) return; const formData = new FormData(); formData.append('task_id', taskId); formData.append('project_id', projectId); formData.append('comment', comment); fetch('/api/tasks/toggle', { method: 'POST', body: formData }).then(res=>res.json()).then(data=>{ if(data.success) loadMyArea(); }); }
