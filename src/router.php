@@ -1,11 +1,12 @@
 <?php
+// /var/www/html/router.php
 $request = $_SERVER['REQUEST_URI']; $path = parse_url($request, PHP_URL_PATH); $method = $_SERVER['REQUEST_METHOD'];
 
 if ($path === '/' || $path === '') { header('Content-Type: text/html'); readfile('app.html'); exit;
 } elseif ($path === '/api/login' && $method === 'POST') { handleLogin();
 } elseif ($path === '/api/logout') { handleLogout();
-} elseif ($path === '/api/password/forgot' && $method === 'POST') { handleForgotPassword(); // NEU
-} elseif ($path === '/api/password/reset' && $method === 'POST') { handleResetPassword(); // NEU
+} elseif ($path === '/api/password/forgot' && $method === 'POST') { handleForgotPassword();
+} elseif ($path === '/api/password/reset' && $method === 'POST') { handleResetPassword();
 } elseif ($path === '/api/status' && $method === 'GET') { echo json_encode(['success' => true, 'status' => 'online', 'system' => 'CorePlan']);
 } elseif ($path === '/api/logs' && $method === 'GET') { handleGetLogs();
 } elseif ($path === '/api/settings' && $method === 'GET') { handleGetSettings();
@@ -25,7 +26,7 @@ if ($path === '/' || $path === '') { header('Content-Type: text/html'); readfile
 } elseif ($path === '/api/projects/extend' && $method === 'POST') { handleExtendProject();
 } elseif ($path === '/api/projects/assign' && $method === 'POST') { handleAssignProject();
 } elseif ($path === '/api/projects/delete' && $method === 'POST') { handleDeleteProject();
-} elseif ($path === '/api/projects/report' && $method === 'GET') { handleGetProjectReport(); // NEU
+} elseif ($path === '/api/projects/report' && $method === 'GET') { handleGetProjectReport(); // NEU: Der Report Button Endpunkt
 } elseif ($path === '/api/tasks' && $method === 'GET') { handleGetTasks();
 } elseif ($path === '/api/tasks/create' && $method === 'POST') { handleCreateTask();
 } elseif ($path === '/api/tasks/toggle' && $method === 'POST') { handleToggleTask();

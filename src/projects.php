@@ -23,7 +23,6 @@ function handleGetProjects() {
     $role = $_SESSION['role'] ?? 'user';
     $userId = $_SESSION['user_id'];
 
-    // BUGFIX: Normale User sehen nur Projekte, die ihnen zugewiesen sind!
     if ($role === 'admin' || $role === 'pm') {
         $stmt = $pdo->query("
             SELECT p.*, u.username as assigned_username,
